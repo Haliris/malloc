@@ -14,6 +14,10 @@ OBJS = $(SRCS:.c=.o)
 
 DEPS = $(OBJS:.o=.d)
 
+ifeq ($(HOSTTYPE),)
+	HOSTTYPE = $(shell uname -m)_$(shell uname -s)
+endif
+
 NAME = libft_malloc$(HOSTTYPE).so
 
 all: 
