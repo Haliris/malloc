@@ -1,26 +1,45 @@
 #ifndef DATA_STRUCTS_H
 # define DATA_STRUCTS_H
+# include <cstddef>
 # include <stdlib.h>
 
-typedef struct s_block
+//Align memory to 8 so that the last 3 bits are always free to be written into. Need to mask them to get the size however
+//Need to setup headers and footers so that we can use then footers to go back through the list instead of being stuck going forward
+
+typedef enum t_zone_type
 {
-    size_t  size;
-    char    allocated;
-    s_block *prev;
-    s_block *next;
-} t_block;
+    TINY = 32,
+    SMALL = 64,
+    LARGE = 128
+} e_zone_type;
 
-typedef struct s_heap
+typedef struct t_block_header
 {
-    s_heap *prev;    
-    s_heap *next;
-    t_block     block;
-    size_t      group_size;
-} t_heap;
+    int     metadata;
+    char    padding[4]; //TO make it 8??
+} s_block_header;
 
-# define PAYLOAD_HEADER(block_ptr) ((char *) (block_ptr) - sizeof(t_block))
-# define GET_SIZE(ptr) ((t_block_header *) (ptr)->size);
-# define GET_ALLOC(ptr) ((t_block_header *) (ptr)->allocated);
-# define GET_NEXT_HEADER(block_ptr) ((char *) (block_ptr) + (block_ptr)->size)
+typedef struct t_block
+{
+    t_block* prev;
+    t_block* next;
+    void*    payload;
+//    size_t  size;
+//    char    allocated;
+} s_block;
 
-#endif
+typedef struct t_page
+{
+    t_page*     next;
+    t_block*    block_cursor;
+    e_zone_type type;
+    size_t      free_space;
+} s_page;
+
+# define PAYLOAD_HEADER(block_ptr) ((char *) (block_ptr) - sizeof(s_block));
+# define GET_SIZE(ptr) ((s_block_header *) (ptr)->size); // Need to mask off the tree bits of the header word
+# define GET_ALLOC(ptr) ((s_block_header *) (ptr)->allocated); // Same but the opposite
+# define GET_NEXT_HEADER(block_ptr) ((char *) (block_ptr) + (block_ptr)->size);
+# define PAYLOAD_FOOTER(block_ptr) ((char *) (block_ptr) + GET_SIZE(PAYLOAD_HEADER(block_tr)) - sizeof(s_block));
+
+# endif
