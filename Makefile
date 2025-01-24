@@ -1,6 +1,6 @@
 CC = cc
 
-CFLAGS = -Wall -Werror -Wextra -MMD
+CFLAGS = -Wall -Werror -Wextra -MMD -g3
 
 INCLUDES = -I includes/
 
@@ -20,7 +20,7 @@ endif
 
 NAME = libft_malloc$(HOSTTYPE).so
 
-all: 
+all: $(NAME)
 
 $(NAME): $(OBJS) $(H_DEPS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(NAME)
@@ -30,7 +30,8 @@ $(NAME): $(OBJS) $(H_DEPS)
 
 -include $(DEPS)
 
-clean: rm -rf $(OBJS) $(DEPS)
+clean: 
+	rm -rf $(OBJS) $(DEPS)
 
 fclean: clean 
 	rm -rf $(NAME)

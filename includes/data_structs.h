@@ -1,6 +1,5 @@
 #ifndef DATA_STRUCTS_H
 # define DATA_STRUCTS_H
-# include <cstddef>
 # include <stdlib.h>
 
 //Align memory to 8 so that the last 3 bits are always free to be written into. Need to mask them to get the size however
@@ -21,19 +20,17 @@ typedef struct t_block_header
 
 typedef struct t_block
 {
-    t_block* prev;
-    t_block* next;
+    struct t_block* prev;
+    struct t_block* next;
     void*    payload;
-//    size_t  size;
-//    char    allocated;
 } s_block;
 
 typedef struct t_page
 {
-    t_page*     next;
-    t_block*    block_cursor;
+    struct t_page*     next;
+    struct t_block*    block_cursor;
     e_zone_type type;
-    size_t      free_space;
+    size_t      free_space; // Have some way to 'preview' the page so that we do not always need to scan it??
 } s_page;
 
 # define PAYLOAD_HEADER(block_ptr) ((char *) (block_ptr) - sizeof(s_block));
