@@ -22,15 +22,15 @@ typedef struct t_block
 {
     struct t_block* prev;
     struct t_block* next;
-    void*    payload;
+    void*           payload;
 } s_block;
 
 typedef struct t_page
 {
     struct t_page*     next;
-    struct t_block*    block_cursor;
-    e_zone_type type;
-    size_t      free_space; // Have some way to 'preview' the page so that we do not always need to scan it??
+    s_block*           block_cursor;
+    e_zone_type        type;
+    size_t             free_space; // Have some way to 'preview' the page so that we do not always need to scan it??
 } s_page;
 
 # define PAYLOAD_HEADER(block_ptr) ((char *) (block_ptr) - sizeof(s_block));
@@ -39,4 +39,4 @@ typedef struct t_page
 # define GET_NEXT_HEADER(block_ptr) ((char *) (block_ptr) + (block_ptr)->size);
 # define PAYLOAD_FOOTER(block_ptr) ((char *) (block_ptr) + GET_SIZE(PAYLOAD_HEADER(block_tr)) - sizeof(s_block));
 
-# endif
+#endif
