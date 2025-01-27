@@ -15,16 +15,36 @@ void    free(void *ptr)
         return;
 };
 
-int     request_map(e_zone_type type, long page_size)
+int     request_page(e_zone_type type, long page_size)
 {
-
+    if (!page_head)
+    {
+        page_head->page = (void*)mmap(NULL, page_size * type, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+        if (page_head == MAP_FAILED)
+            return (FATAL_ERROR);
+        page_head->type = type;
+        page_head->free_space = page_size;
+    }
+    else
+    {
+        s_page* iterator = page_head;
+        while (iterator->next != NULL)
+            iterator = iterator->next;
+        iterator->next->page = (void*)mmap(NULL, page_size * type, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+        if (iterator->next == MAP_FAILED)
+            return (FATAL_ERROR); // need to unmap and free everything, so need to find a code to distinguish
+        iterator->type = type;
+        iterator->free_space = page_size;
+        iterator->next->next = NULL;
+    }
+    return (SUCCESS);
 }
 
 int    init_pages(long* page_size, size_t requested_size)
 {
     if (0 == *page_size)
     {
-        #ifdef __APPLE__
+        #ifdef __APPLE__ // no osX at school??
             *page_size = getpagesize(void);
         #elif __linux__
             *page_size = sysconf(_SC_PAGESIZE);
@@ -35,19 +55,19 @@ int    init_pages(long* page_size, size_t requested_size)
             return (FATAL_ERROR);
         }
     }
-    if (requested_size >= LARGE * *page_size)
+    if (requested_size >= LARGE * (*page_size))
     {
-        if (FATAL_ERROR == request_map(LARGE, *page_size))
+        if (FATAL_ERROR == request_page(LARGE, *page_size))
             return (FATAL_ERROR);
     }
-    else if (requested_size >= SMALL * *page_size)
+    else if (requested_size >= SMALL * (*page_size))
     {
-        if (FATAL_ERROR == request_map(SMALL, *page_size))
+        if (FATAL_ERROR == request_page(SMALL, *page_size))
                 return (FATAL_ERROR);
     }
     else
     {
-        if (FATAL_ERROR == request_map(TINY, *page_size))
+        if (FATAL_ERROR == request_page(TINY, *page_size))
                 return (FATAL_ERROR);
     }
     return (SUCCESS);
@@ -69,8 +89,10 @@ void*    malloc(size_t size)
         return (NULL);
     if (NULL == page_head)
         if (FATAL_ERROR == init_pages(&page_size, size))
+        {
+            write(STDERR_FILENO, "Fatal error\n", 12);
             return (NULL); //wtf do we do when fatal???
-
+        }
     void *p = NULL;
     return (p); //beginning of page actually
 };
