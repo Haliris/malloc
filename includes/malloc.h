@@ -7,4 +7,5 @@
 # include "data_structs.h"
 # define SUCCESS 0
 # define FATAL_ERROR 1
+# define MAX_PAGES 1024
 #endif
