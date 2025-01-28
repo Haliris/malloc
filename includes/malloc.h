@@ -10,3 +10,5 @@
 # define FATAL_ERROR 1
 # define MAX_PAGES 1024
 #endif
+
+void print_page_list(s_page *page_head);

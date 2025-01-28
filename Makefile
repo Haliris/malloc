@@ -6,7 +6,7 @@ INCLUDES = -I includes/ -I libft/
 
 SRCS_DIR = srcs/
 
-SRCS_FILES = malloc.c
+SRCS_FILES = malloc.c test_utils.c
 
 SRCS = $(addprefix $(SRCS_DIR), $(SRCS_FILES))
 

@@ -28,16 +28,9 @@ int     request_page(int type, long page_size)
             write(2, "\n", 1);
             return (FATAL_ERROR);
         }
-        ft_printf("-------\n");
-        ft_printf("Request pages\n");
-        ft_printf("-------\n");
         page_head->block_head = (s_block*) ((char*)page_head + sizeof(s_page));
         page_head->type = type;
         page_head->free_space = (page_size * type) - sizeof(s_page);
-        ft_printf("page_head: %p\n", page_head);
-        ft_printf("type: %d\n", page_head->type);
-        ft_printf("block_head: %p\n", page_head->block_head);
-        ft_printf("free_space: %d\n", page_head->free_space);
     }
     else
     {
@@ -58,42 +51,28 @@ int     request_page(int type, long page_size)
 
 int    init_pages(long* page_size, long requested_size)
 {
-    if (0 == *page_size)
+    int type;
+    long p_size = *page_size;
+    if (0 == p_size)
     {
         #ifdef __APPLE__ // no osX at school??
-            *page_size = getpagesize(void);
+            p_size = getpagesize(void);
         #elif __linux__
-            *page_size = sysconf(_SC_PAGESIZE);
+            p_size = sysconf(_SC_PAGESIZE);
         #endif
-        if (*page_size <= 0)
+        if (p_size <= 0)
         {
             write(STDERR_FILENO, "Fatal error\n", 12);
             return (FATAL_ERROR);
         }
     }
-    if (requested_size >= LARGE * (*page_size))
-    {
-        if (FATAL_ERROR == request_page(LARGE, *page_size))
-            return (FATAL_ERROR);
-    }
-    else if (requested_size >= SMALL * (*page_size))
-    {
-        if (FATAL_ERROR == request_page(SMALL, *page_size))
-                return (FATAL_ERROR);
-    }
-    else
-    {
-        ft_printf("Requesting page of size: %d\n", (int)(TINY * (*page_size)));
-        if (FATAL_ERROR == request_page(TINY, *page_size))
-                return (FATAL_ERROR);
-    }
-    ft_printf("-------\n");
-    ft_printf("Init pages\n");
-    ft_printf("-------\n");
-    ft_printf("page_head: %p\n", page_head);
-    ft_printf("type: %d\n", page_head->type);
-    ft_printf("block_head: %p\n", page_head->block_head);
-    ft_printf("free_space: %d\n", page_head->free_space);
+    type = (LARGE * (requested_size >= (LARGE * p_size))
+                + SMALL * (requested_size >= (SMALL * p_size))
+                + (TINY * (requested_size < SMALL * p_size))
+                );
+    ft_printf("Type requested: %d\n", type);
+    if (FATAL_ERROR == request_page(type, p_size))
+        return (FATAL_ERROR);
     return (SUCCESS);
 }
 
@@ -121,6 +100,8 @@ void*    malloc(size_t size)
         }
         return page_head;
     }
+//    else
+ //       request_page(size);
     return page_head;
 //    void *p = NULL;
 //    return (p); //beginning of page actually
@@ -134,13 +115,7 @@ int main(void)
     if (p)
     {
         write(2, "Successfully got page from kernel!\n", strlen("Successfully got page from kernel!\n"));
-        ft_printf("-------\n");
-        ft_printf("Main\n");
-        ft_printf("-------\n");
-        ft_printf("page: %p\n", page_head);
-        ft_printf("type: %d\n", page_head->type);
-        ft_printf("block_head: %p\n", page_head->block_head);
-        ft_printf("free space: %d\n", page_head->free_space);
+        print_page_list(page_head);
     }
     else
     {
