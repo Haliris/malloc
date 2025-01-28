@@ -66,8 +66,7 @@ void		ft_lstiter(t_list *lst, void (*f)(void *));
 t_list		*ft_lstmap(t_list *lst, void *(*f)(void *), void (*del)(void *));
 
 // ft_printf
-int			ft_printf(const char *fmt, ...)
-			__attribute__((format (printf, 1, 2)));
+int			ft_printf(const char *fmt, ...);
 int			triage_format(char format, va_list args);
 int			process_string(const char *str, va_list args);
 int			print_putchar_fd(char c, int fd);

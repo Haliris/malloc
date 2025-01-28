@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-s_page* page_head;
+s_page* page_head = NULL;
 
 void    show_alloc_mem()
 {};
@@ -18,6 +18,7 @@ void    free(void *ptr)
 
 int     request_page(int type, long page_size)
 {
+
     if (!page_head)
     {
         page_head = (void*)mmap(NULL, (page_size * type) + sizeof(s_page), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -27,12 +28,16 @@ int     request_page(int type, long page_size)
             write(2, "\n", 1);
             return (FATAL_ERROR);
         }
-        printf("page_head: %p\n", page_head);
+        ft_printf("-------\n");
+        ft_printf("Request pages\n");
+        ft_printf("-------\n");
         page_head->block_head = (s_block*) ((char*)page_head + sizeof(s_page));
-        printf("block_head: %p\n", page_head->block_head);
         page_head->type = type;
-        page_head->free_space = page_size - sizeof(s_page);
-        printf("free_space: %lld, page_size: %ld, sizeof(s_page): %ld\n", page_head->free_space, page_size, sizeof(s_page));
+        page_head->free_space = (page_size * type) - sizeof(s_page);
+        ft_printf("page_head: %p\n", page_head);
+        ft_printf("type: %d\n", page_head->type);
+        ft_printf("block_head: %p\n", page_head->block_head);
+        ft_printf("free_space: %d\n", page_head->free_space);
     }
     else
     {
@@ -82,6 +87,13 @@ int    init_pages(long* page_size, long requested_size)
         if (FATAL_ERROR == request_page(TINY, *page_size))
                 return (FATAL_ERROR);
     }
+    ft_printf("-------\n");
+    ft_printf("Init pages\n");
+    ft_printf("-------\n");
+    ft_printf("page_head: %p\n", page_head);
+    ft_printf("type: %d\n", page_head->type);
+    ft_printf("block_head: %p\n", page_head->block_head);
+    ft_printf("free_space: %d\n", page_head->free_space);
     return (SUCCESS);
 }
 
@@ -101,11 +113,14 @@ void*    malloc(size_t size)
     if (size == 0)
         return (NULL);
     if (NULL == page_head)
+    {
         if (FATAL_ERROR == init_pages(&page_size, size))
         {
             write(STDERR_FILENO, "Fatal error in init pages\n", 26);
             return (NULL); //wtf do we do when fatal???
         }
+        return page_head;
+    }
     return page_head;
 //    void *p = NULL;
 //    return (p); //beginning of page actually
@@ -119,9 +134,13 @@ int main(void)
     if (p)
     {
         write(2, "Successfully got page from kernel!\n", strlen("Successfully got page from kernel!\n"));
-        printf("page: %p\n", page_head);
-        printf("block_head: %p\n", page_head->block_head);
-        printf("free space: %lld\n", page_head->free_space);
+        ft_printf("-------\n");
+        ft_printf("Main\n");
+        ft_printf("-------\n");
+        ft_printf("page: %p\n", page_head);
+        ft_printf("type: %d\n", page_head->type);
+        ft_printf("block_head: %p\n", page_head->block_head);
+        ft_printf("free space: %d\n", page_head->free_space);
     }
     else
     {
