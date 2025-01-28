@@ -21,6 +21,7 @@ int     request_page(int type, long page_size)
 
     if (!page_head)
     {
+        ft_printf("Initializing pages with type: %d\n", type);
         page_head = (void*)mmap(NULL, (page_size * type) + sizeof(s_page), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if (page_head == MAP_FAILED)
         {
@@ -34,12 +35,13 @@ int     request_page(int type, long page_size)
     }
     else
     {
+        ft_printf("Requesting new page with type: %d\n", type);
         s_page* new_page = (void*)mmap(NULL, (page_size * type) + sizeof(s_page), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if (new_page == MAP_FAILED)
             return (FATAL_ERROR); // need to unmap and free everything, so need to find a code to distinguish. But unmapping memory below the caller is dangerous, so should I just do nothing and wait for the free call??
         new_page->block_head = (s_block*) ((char*)new_page + sizeof(s_page));
         new_page->type = type;
-        new_page->free_space = page_size - sizeof(s_page);
+        new_page->free_space = (page_size * type) - sizeof(s_page);
         new_page->next = NULL;
         s_page* iterator = page_head;
         while (iterator->next != NULL)
@@ -68,6 +70,7 @@ int    init_pages(long* page_size, long requested_size)
     type += IS_LARGE_TYPE(requested_size, *page_size);
     type += IS_SMALL_TYPE(requested_size, *page_size);
     type += IS_TINY_TYPE(requested_size, *page_size);
+    ft_printf("Type requested is: %d\n", type);
     if (FATAL_ERROR == request_page(type, *page_size))
         return (FATAL_ERROR);
     return (SUCCESS);
@@ -85,7 +88,6 @@ void*    malloc(size_t size)
 {
     static long page_size;
 
-    write(2, "Hi!\n", 4);
     if (size == 0)
         return (NULL);
     if (NULL == page_head)
@@ -97,8 +99,14 @@ void*    malloc(size_t size)
         }
         return page_head;
     }
-//    else
- //       request_page(size);
+    else
+    {
+        int type = 0;
+        type += IS_LARGE_TYPE((long long)size, page_size);
+        type += IS_SMALL_TYPE((long long)size, page_size);
+        type += IS_TINY_TYPE((long long)size, page_size);
+        request_page(type, page_size);
+    }
     return page_head;
 //    void *p = NULL;
 //    return (p); //beginning of page actually
@@ -108,10 +116,14 @@ void*    malloc(size_t size)
 int main(void)
 {
     void *p;
+    void *r;
+    void *s;
     p = malloc(64 * 4096);
-    if (p)
+    r = malloc(1 * 100);
+    s = malloc(130 * 4096);
+    if (p && r && s)
     {
-        write(2, "Successfully got page from kernel!\n", strlen("Successfully got page from kernel!\n"));
+        write(2, "Successfully got pages from kernel!\n", 37);
         print_page_list(page_head);
     }
     else
