@@ -22,7 +22,8 @@ ifeq ($(HOSTTYPE),)
 	HOSTTYPE = $(shell uname -m)_$(shell uname -s)
 endif
 
-NAME = libft_malloc$(HOSTTYPE).so
+#NAME = libft_malloc$(HOSTTYPE).so
+NAME = malloc_test
 
 all: $(NAME)
 

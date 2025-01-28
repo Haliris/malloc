@@ -5,6 +5,7 @@
 # include <errno.h>
 # include <sys/mman.h>
 # include "data_structs.h"
+# include "../libft/libft.h"
 # define SUCCESS 0
 # define FATAL_ERROR 1
 # define MAX_PAGES 1024
