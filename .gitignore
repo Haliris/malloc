@@ -1,4 +1,6 @@
 *.out
+*.a
+*_test
 *.o
 *.d
 *.so
