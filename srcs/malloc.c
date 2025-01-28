@@ -96,7 +96,10 @@ void*   allocate_memory(size_t size, int *error_status)
     while (iterator)
     {
         if (iterator->free_space < (long long)size)
+        {
+            iterator = iterator->next;
             continue;
+        }
         int* metadata = &iterator->block_head->metadata;
         while (1) 
         {
@@ -107,8 +110,8 @@ void*   allocate_memory(size_t size, int *error_status)
                 ptr = metadata + sizeof(s_block_header);
                 size_t original_size = *metadata & ~ALLOCATED;
                 *metadata = size;
-                *metadata |= 1;
-                s_block_header* next_header = (s_block_header*)metadata + size;
+                *metadata |= ALLOCATED;
+                s_block_header* next_header = (s_block_header*)metadata + (*metadata & ~ALLOCATED);
                 if ((next_header->metadata & ~ALLOCATED) == 0 && (next_header->metadata & ALLOCATED))
                 {
                     iterator->block_head = (s_block_header*)iterator + sizeof(s_page);
