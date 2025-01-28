@@ -51,27 +51,24 @@ int     request_page(int type, long page_size)
 
 int    init_pages(long* page_size, long requested_size)
 {
-    int type;
-    long p_size = *page_size;
-    if (0 == p_size)
+    int type = 0;
+    if (0 == *page_size)
     {
         #ifdef __APPLE__ // no osX at school??
             p_size = getpagesize(void);
         #elif __linux__
-            p_size = sysconf(_SC_PAGESIZE);
+            *page_size = sysconf(_SC_PAGESIZE);
         #endif
-        if (p_size <= 0)
+        if (*page_size <= 0)
         {
             write(STDERR_FILENO, "Fatal error\n", 12);
             return (FATAL_ERROR);
         }
     }
-    type = (LARGE * (requested_size >= (LARGE * p_size))
-                + SMALL * (requested_size >= (SMALL * p_size))
-                + (TINY * (requested_size < SMALL * p_size))
-                );
-    ft_printf("Type requested: %d\n", type);
-    if (FATAL_ERROR == request_page(type, p_size))
+    type += IS_LARGE_TYPE(requested_size, *page_size);
+    type += IS_SMALL_TYPE(requested_size, *page_size);
+    type += IS_TINY_TYPE(requested_size, *page_size);
+    if (FATAL_ERROR == request_page(type, *page_size))
         return (FATAL_ERROR);
     return (SUCCESS);
 }
@@ -111,7 +108,7 @@ void*    malloc(size_t size)
 int main(void)
 {
     void *p;
-    p = malloc(1);
+    p = malloc(64 * 4096);
     if (p)
     {
         write(2, "Successfully got page from kernel!\n", strlen("Successfully got page from kernel!\n"));
