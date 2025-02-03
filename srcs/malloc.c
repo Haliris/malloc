@@ -116,11 +116,7 @@ void*   allocate_memory(long long size, int *error_status)
     if (size > LLONG_MAX - 7)
         return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
     if (size % 8 != 0)
-    {
-        ft_printf("Rounding original size: %d ", size);
         size = ROUND_TO_8(size);
-        ft_printf("%d\n", size);
-    }
     while (iterator)
     {
         if (iterator->free_space < (long long)size) // add check with largest free block as well
@@ -214,13 +210,13 @@ int main(int ac, char **av)
         exit(1);
     }
     size_t  size = atoi(av[1]);
-    void    *p;
-    void    *s;
+    void    **p[10];
 
-    p = malloc(size);
-    s = malloc(size * 2);
+    for (int i = 0; i < 5; i++)
+        p[i] = malloc(size * (i + 1));
     print_page_list(page_head);
-    print_block_info(p);
-    print_block_info(s);
+    ft_printf("-----\nPrinting allocated blocks info\n-----\n");
+    for (int k = 0; k < 5; k++)
+        print_block_info(p[k]);
     return (0);
 }

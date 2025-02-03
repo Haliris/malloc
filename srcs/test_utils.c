@@ -49,6 +49,7 @@ void    print_block_info(void *ptr)
 {
     if (!ptr)
         write(2, "Null pointer passed to print_block_info!\n", strlen("Null pointer passed to print_block_info!\n"));
+    ft_printf("Printing info for block: %p\n", ptr);
     s_block_header *header = (s_block_header*)ptr - 1;
     int metadata = header->metadata;
     write(1, "Metadata of payload: ", strlen("Metadata of payload: "));
