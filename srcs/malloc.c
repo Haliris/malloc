@@ -37,9 +37,13 @@ int     request_page(int type, long page_size)
         page_head->free_space = (page_size * type) - sizeof(s_page) - sizeof(int) - sizeof(s_block_header);
         page_head->block_head = (s_block_header*) ((char*)page_head + sizeof(s_page));
         page_head->block_head->metadata = page_head->free_space;
-        int* page_footer = (int*)(char*)page_head + page_size;
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + page_head->free_space - sizeof(s_block_header));
+        ft_printf("Page address at: %p\n", page_head);
         ft_printf("Page footer set at address: %p\n", page_footer);
-        *page_footer = 0 & ALLOCATED;
+        page_footer->metadata = 0;
+        page_footer->metadata |= ALLOCATED;
+        ft_printf("Page footer metadata size: %d\n", page_footer->metadata & ~ALLOCATED);
+        ft_print_bits(page_footer->metadata);
     }
     else
     {
@@ -60,10 +64,12 @@ int     request_page(int type, long page_size)
         new_page->next = NULL;
         new_page->block_head = (s_block_header*)((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
-        int* page_footer = (int*)(char*)page_head + page_size;
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + new_page->free_space - sizeof(s_block_header));
+        page_footer->metadata = 0;
+        page_footer->metadata |= ALLOCATED;
         ft_printf("Page footer set at address: %p\n", page_footer);
-        *page_footer = 0 & ALLOCATED;
-
+        ft_printf("Page footer metadata size: %d\n", page_footer->metadata & ~ALLOCATED);
+        ft_print_bits(page_footer->metadata);
         s_page* iterator = page_head;
         while (iterator->next != NULL)
             iterator = iterator->next;
@@ -88,9 +94,9 @@ int    init_pages(long* page_size, long requested_size)
             return (FATAL_ERROR);
         }
     }
-    type += IS_LARGE_TYPE(requested_size, *page_size);
-    type += IS_SMALL_TYPE(requested_size, *page_size);
-    type += IS_TINY_TYPE(requested_size, *page_size);
+    type += IS_LARGE_TYPE(requested_size,(long) (*page_size - sizeof(s_page)));
+    type += IS_SMALL_TYPE(requested_size,(long) (*page_size - sizeof(s_page)));
+    type += IS_TINY_TYPE(requested_size,(long) (*page_size - sizeof(s_page)));
     ft_printf("Type requested is: %d\n", type);
     if (request_page(type, *page_size) == FATAL_ERROR)
         return (FATAL_ERROR);
@@ -111,12 +117,8 @@ void*   allocate_memory(long long size, int *error_status)
     s_page *iterator = page_head;
     void   *ptr;
 
-
     ft_printf("----\n Allocating memory\n----\n");
-    if (size > LLONG_MAX - 7)
-        return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
-    if (size % 8 != 0)
-        size = ROUND_TO_8(size);
+
     while (iterator)
     {
         if (iterator->free_space < (long long)size) // add check with largest free block as well
@@ -143,7 +145,6 @@ void*   allocate_memory(long long size, int *error_status)
                 s_block_header* next_header = (s_block_header*)((char*)metadata + (*metadata & ~ALLOCATED));
                 ft_printf("Operation to find next header: metadata + %d\n", *metadata & ~ALLOCATED);
                 ft_printf("Next_header address: %p\n", next_header);
-                ft_printf("Metadata of next header: %d\n", next_header->metadata);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
@@ -178,6 +179,12 @@ void    *malloc(size_t size)
 
     if (size == 0)
         return (NULL);
+    if (size > LLONG_MAX - 7)
+        return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
+    if (size % 8 != 0)
+        size = ROUND_TO_8(size);
+    ft_printf("requested alloc size: %d\n", size);
+    ft_printf("Size of page header: %d\n", sizeof(s_page));
     if (page_head == NULL)
     {
         if (init_pages(&page_size, size) == FATAL_ERROR)
@@ -190,9 +197,9 @@ void    *malloc(size_t size)
     if (error_status == NO_GOOD_PAGE)
     {
         int type = 0;
-        type += IS_LARGE_TYPE((long long)size, page_size);
-        type += IS_SMALL_TYPE((long long)size, page_size);
-        type += IS_TINY_TYPE((long long)size, page_size);
+        type += IS_LARGE_TYPE((long long)size, (long)(page_size - sizeof(s_page)));
+        type += IS_SMALL_TYPE((long long)size, (long)(page_size - sizeof(s_page)));
+        type += IS_TINY_TYPE((long long)size, (long)(page_size - sizeof(s_page)));
         if (request_page(type, page_size) == FATAL_ERROR)
             return (NULL);
         error_status = 0;
@@ -210,13 +217,17 @@ int main(int ac, char **av)
         exit(1);
     }
     size_t  size = atoi(av[1]);
-    void    **p[10];
+    void    **p[100];
 
-    for (int i = 0; i < 5; i++)
-        p[i] = malloc(size * (i + 1));
-    print_page_list(page_head);
-    ft_printf("-----\nPrinting allocated blocks info\n-----\n");
-    for (int k = 0; k < 5; k++)
-        print_block_info(p[k]);
+    (void)size;
+    (void)p;
+    void *big = malloc(1);
+    (void)big;
+//    for (int i = 0; i < 100; i++)
+//        p[i] = malloc(size * (i + 1));
+//    print_page_list(page_head);
+//    ft_printf("-----\nPrinting allocated blocks info\n-----\n");
+//    for (int k = 0; k < 100; k++)
+//        print_block_info(p[k]);
     return (0);
 }
