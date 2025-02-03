@@ -127,6 +127,8 @@ void*   allocate_memory(long long size, int *error_status)
                 long long original_size = *metadata & ~ALLOCATED;
                 *metadata = size;
                 *metadata |= ALLOCATED;
+                ft_printf("Metadata of ptr: %p\n", metadata);
+                ft_printf("ptr: %p\n", ptr);
                 s_block_header* next_header = (s_block_header*)((char*)metadata + (*metadata & ~ALLOCATED));
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
@@ -162,8 +164,8 @@ void    *malloc(size_t size)
             write(STDERR_FILENO, "Fatal error in init pages\n", 26);
             return (NULL); //wtf do we do when fatal???
         }
-        return page_head; //Remove this return value after tests done
     }
+    write(2, "Allocating memory....\n", strlen("Allocating memory....\n"));
     payload = allocate_memory(size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
@@ -190,11 +192,15 @@ int main(int ac, char **av)
     size_t  size = atoi(av[1]);
     void    *p;
 
-    ft_printf("Sizeof(s_block_header): %d\n", sizeof(s_block_header));
     p = malloc(size);
     if (p)
     {
-        print_page_list(page_head);
+   //     print_page_list(page_head);
+        s_block_header *header = (s_block_header*)p - 1;
+        int metadata = header->metadata;
+        write(1, "Metadata of payload: ", strlen("Metadata of payload: "));
+        ft_putnbr_fd(metadata, 1);
+        write(1, "\n", 1);
         for (size_t i = 0; i < size; i++)
         {
             p++;
