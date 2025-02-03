@@ -64,7 +64,7 @@ int     request_page(int type, long page_size)
         new_page->next = NULL;
         new_page->block_head = (s_block_header*)((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + new_page->free_space - sizeof(s_block_header));
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + new_page->free_space - sizeof(s_block_header)));
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         ft_printf("Page footer set at address: %p\n", page_footer);
