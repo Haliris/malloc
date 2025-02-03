@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static  void ft_print_bits(long nb) // chat gpt shit, remove aaah
+void    ft_print_bits(long nb) // chat gpt shit, remove aaah
 {
     unsigned long mask = 1UL << (sizeof(long) * 8 - 1); // Get the most significant bit
     int started = 0; // To remove leading zeros
@@ -52,8 +52,10 @@ void    print_block_info(void *ptr)
     s_block_header *header = (s_block_header*)ptr - 1;
     int metadata = header->metadata;
     write(1, "Metadata of payload: ", strlen("Metadata of payload: "));
-    ft_putnbr_fd(metadata, 1);
+    ft_putnbr_fd(metadata & ~ALLOCATED, 1);
     write(1, "\n", 1);
+    ft_printf("Metadata bits: ");
+    ft_print_bits(metadata);
 }
 
 

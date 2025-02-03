@@ -37,7 +37,8 @@ int     request_page(int type, long page_size)
         page_head->free_space = (page_size * type) - sizeof(s_page) - sizeof(int) - sizeof(s_block_header);
         page_head->block_head = (s_block_header*) ((char*)page_head + sizeof(s_page));
         page_head->block_head->metadata = page_head->free_space;
-        int* page_footer = (int*)(char*)page_head + page_size - sizeof(int);
+        int* page_footer = (int*)(char*)page_head + page_size;
+        ft_printf("Page footer set at address: %p\n", page_footer);
         *page_footer = 0 & ALLOCATED;
     }
     else
@@ -59,7 +60,8 @@ int     request_page(int type, long page_size)
         new_page->next = NULL;
         new_page->block_head = (s_block_header*)((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
-        int* page_footer = (int*)(char*)page_head + page_size - sizeof(int);
+        int* page_footer = (int*)(char*)page_head + page_size;
+        ft_printf("Page footer set at address: %p\n", page_footer);
         *page_footer = 0 & ALLOCATED;
 
         s_page* iterator = page_head;
@@ -105,8 +107,20 @@ void*    realloc(void *ptr, size_t size)
 
 void*   allocate_memory(long long size, int *error_status)
 {
+    // Make sure that the size of the block is always a multiple of 8 to keep last bit free
     s_page *iterator = page_head;
     void   *ptr;
+
+
+    ft_printf("----\n Allocating memory\n----\n");
+    if (size > LLONG_MAX - 7)
+        return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
+    if (size % 8 != 0)
+    {
+        ft_printf("Rounding original size: %d ", size);
+        size = ROUND_TO_8(size);
+        ft_printf("%d\n", size);
+    }
     while (iterator)
     {
         if (iterator->free_space < (long long)size) // add check with largest free block as well
@@ -124,14 +138,16 @@ void*   allocate_memory(long long size, int *error_status)
                 (*metadata & ALLOCATED) == 0)
             {
                 ptr = (void*) ((char*)metadata + sizeof(s_block_header));
+                ft_printf("ptr: %p\n", ptr);
                 long long original_size = *metadata & ~ALLOCATED;
                 ft_printf("Original size of page before alloc: %d\n", original_size);
                 *metadata = size;
+                ft_printf("Metadata of ptr: %d\n", *metadata);
                 *metadata |= ALLOCATED;
-                ft_printf("Metadata of ptr: %p\n", metadata);
-                ft_printf("ptr: %p\n", ptr);
                 s_block_header* next_header = (s_block_header*)((char*)metadata + (*metadata & ~ALLOCATED));
+                ft_printf("Operation to find next header: metadata + %d\n", *metadata & ~ALLOCATED);
                 ft_printf("Next_header address: %p\n", next_header);
+                ft_printf("Metadata of next header: %d\n", next_header->metadata);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
@@ -149,7 +165,8 @@ void*   allocate_memory(long long size, int *error_status)
                 ft_printf("Metadata of next address: %d\n", next_header->metadata);
                 return (ptr);
             }
-            metadata += (*metadata & ~ALLOCATED);
+            ft_printf("Moving metadata pointer by: %d\n", *metadata & ~ALLOCATED);
+            metadata = metadata + (*metadata & ~ALLOCATED);
         }
         iterator = iterator->next;
     }
@@ -173,7 +190,6 @@ void    *malloc(size_t size)
             return (NULL); //wtf do we do when fatal???
         }
     }
-    write(2, "Allocating memory....\n", strlen("Allocating memory....\n"));
     payload = allocate_memory(size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {

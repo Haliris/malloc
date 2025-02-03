@@ -5,6 +5,7 @@
 # include <errno.h>
 # include <sys/mman.h>
 # include <stdlib.h>
+# include <limits.h>
 # include "data_structs.h"
 # include "../libft/libft.h"
 # define SUCCESS 0
@@ -17,5 +18,6 @@
 
 void    print_page_list(s_page *page_head);
 void    print_block_info(void *ptr);
+void    ft_print_bits(long nb);
 #endif
 

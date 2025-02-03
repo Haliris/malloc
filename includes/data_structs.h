@@ -31,5 +31,6 @@ typedef struct t_page
 # define GET_ALLOC(ptr) ((s_block_header *) (ptr)->allocated); // Same but the opposite
 # define GET_NEXT_HEADER(block_ptr) ((char *) (block_ptr) + (block_ptr)->size);
 # define PAYLOAD_FOOTER(block_ptr) ((char *) (block_ptr) + GET_SIZE(PAYLOAD_HEADER(block_tr)) - sizeof(s_block));
+# define ROUND_TO_8(x) ((x + 7) &(-8));
 
 #endif
