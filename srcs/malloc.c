@@ -125,20 +125,28 @@ void*   allocate_memory(long long size, int *error_status)
             {
                 ptr = (void*) ((char*)metadata + sizeof(s_block_header));
                 long long original_size = *metadata & ~ALLOCATED;
+                ft_printf("Original size of page before alloc: %d\n", original_size);
                 *metadata = size;
                 *metadata |= ALLOCATED;
                 ft_printf("Metadata of ptr: %p\n", metadata);
                 ft_printf("ptr: %p\n", ptr);
                 s_block_header* next_header = (s_block_header*)((char*)metadata + (*metadata & ~ALLOCATED));
+                ft_printf("Next_header address: %p\n", next_header);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
-                    iterator->block_head = (s_block_header*)iterator + sizeof(s_page);
+                    iterator->block_head = (s_block_header*)((char*)page_head + sizeof(s_page)); // test that the value is right here
                     return (ptr);
+                }
+                else if (next_header->metadata & ALLOCATED)
+                {
+                    // call method to iterate through block headers until one is found free
+                    continue;
                 }
                 if (size < original_size)
                     next_header->metadata = original_size - size;
                 iterator->block_head = next_header;
+                ft_printf("Metadata of next address: %d\n", next_header->metadata);
                 return (ptr);
             }
             metadata += (*metadata & ~ALLOCATED);
@@ -191,25 +199,12 @@ int main(int ac, char **av)
     }
     size_t  size = atoi(av[1]);
     void    *p;
+    void    *s;
 
     p = malloc(size);
-    if (p)
-    {
-   //     print_page_list(page_head);
-        s_block_header *header = (s_block_header*)p - 1;
-        int metadata = header->metadata;
-        write(1, "Metadata of payload: ", strlen("Metadata of payload: "));
-        ft_putnbr_fd(metadata, 1);
-        write(1, "\n", 1);
-        for (size_t i = 0; i < size; i++)
-        {
-            p++;
-            write(1, "Accessing position: ", strlen("Accessing position: "));
-            ft_putnbr_fd(i, 1);
-            write(1, "\n", 1);
-        }
-    }
-    else
-        write(2, "Could not allocate...\n", strlen("Could not allocate...\n"));
+    s = malloc(size * 2);
+    print_page_list(page_head);
+    print_block_info(p);
+    print_block_info(s);
     return (0);
 }

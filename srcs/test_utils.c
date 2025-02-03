@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static void ft_print_bits(long nb) // chat gpt shit, remove aaah
+static  void ft_print_bits(long nb) // chat gpt shit, remove aaah
 {
     unsigned long mask = 1UL << (sizeof(long) * 8 - 1); // Get the most significant bit
     int started = 0; // To remove leading zeros
@@ -26,10 +26,11 @@ static void ft_print_bits(long nb) // chat gpt shit, remove aaah
     ft_printf("\n");
 }
 
-void print_page_list(s_page *page_head)
+void    print_page_list(s_page *page_head)
 {
     s_page* iterator;
     iterator = page_head;
+    ft_printf("-----------\n Printing Pages\n-----------\n");
     while (iterator)
     {
         ft_printf("page_head: %p\n", iterator);
@@ -41,6 +42,18 @@ void print_page_list(s_page *page_head)
         ft_printf("block_head metadata: %d\n", iterator->block_head->metadata);
         iterator = iterator->next;
     }
+    ft_printf("----------------------\n");
+}
+
+void    print_block_info(void *ptr)
+{
+    if (!ptr)
+        write(2, "Null pointer passed to print_block_info!\n", strlen("Null pointer passed to print_block_info!\n"));
+    s_block_header *header = (s_block_header*)ptr - 1;
+    int metadata = header->metadata;
+    write(1, "Metadata of payload: ", strlen("Metadata of payload: "));
+    ft_putnbr_fd(metadata, 1);
+    write(1, "\n", 1);
 }
 
 
