@@ -18,7 +18,7 @@ void    free(void *ptr)
 
 int     request_page(int type, long page_size)
 {
-
+    ft_printf("------\nRequesting page\n------\n");
     if (!page_head)
     {
         page_head = (void*)mmap(NULL,
@@ -34,16 +34,19 @@ int     request_page(int type, long page_size)
             return (FATAL_ERROR);
         }
         page_head->type = type;
-        page_head->free_space = (page_size * type) - sizeof(s_page) - sizeof(int) - sizeof(s_block_header);
+        page_head->free_space = (page_size * type) - sizeof(s_page) - sizeof(s_block_header) - sizeof(s_block_header);
         page_head->block_head = (s_block_header*) ((char*)page_head + sizeof(s_page));
         page_head->block_head->metadata = page_head->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + page_head->free_space - sizeof(s_block_header));
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + page_head->free_space);
         ft_printf("Page address at: %p\n", page_head);
         ft_printf("Page footer set at address: %p\n", page_footer);
+        ft_printf("Page footer at this distance from head: %d\n", (char*)page_footer - (char*)page_head);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         ft_printf("Page footer metadata size: %d\n", page_footer->metadata & ~ALLOCATED);
         ft_print_bits(page_footer->metadata);
+        ft_printf("Page head metadata set at: %p\n", page_head->block_head);
+        ft_printf("Page head metadata value: %d\n", page_head->block_head->metadata);
     }
     else
     {
@@ -60,11 +63,11 @@ int     request_page(int type, long page_size)
             return (FATAL_ERROR); // need to unmap and free everything, so need to find a code to distinguish. But unmapping memory below the caller is dangerous, so should I just do nothing and wait for the free call??
         }
         new_page->type = type;
-        new_page->free_space = (page_size * type) - sizeof(s_page) - sizeof(int) - sizeof(s_block_header);
+        new_page->free_space = (page_size * type) - sizeof(s_page) - sizeof(s_block_header) - sizeof(s_block_header);
         new_page->next = NULL;
         new_page->block_head = (s_block_header*)((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + new_page->free_space - sizeof(s_block_header)));
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + new_page->free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         ft_printf("Page footer set at address: %p\n", page_footer);
@@ -113,7 +116,6 @@ void*    realloc(void *ptr, size_t size)
 
 void*   allocate_memory(long long size, int *error_status)
 {
-    // Make sure that the size of the block is always a multiple of 8 to keep last bit free
     s_page *iterator = page_head;
     void   *ptr;
 
@@ -145,6 +147,7 @@ void*   allocate_memory(long long size, int *error_status)
                 s_block_header* next_header = (s_block_header*)((char*)metadata + (*metadata & ~ALLOCATED));
                 ft_printf("Operation to find next header: metadata + %d\n", *metadata & ~ALLOCATED);
                 ft_printf("Next_header address: %p\n", next_header);
+                ft_printf("Next header this far from page_head: %d\n", (char*)next_header - (char*)page_head);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
@@ -153,8 +156,8 @@ void*   allocate_memory(long long size, int *error_status)
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
-                    // call method to iterate through block headers until one is found free
-                    continue;
+                    iterator->block_head = next_header;
+                    return (ptr);
                 }
                 if (size < original_size)
                     next_header->metadata = original_size - size;
@@ -164,6 +167,10 @@ void*   allocate_memory(long long size, int *error_status)
             }
             ft_printf("Moving metadata pointer by: %d\n", *metadata & ~ALLOCATED);
             metadata = metadata + (*metadata & ~ALLOCATED);
+            ft_printf("Metadata pointer now at: %p\n", metadata);
+            ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)page_head);
+            if (*metadata == 0)
+                break;
         }
         iterator = iterator->next;
     }
@@ -216,13 +223,18 @@ int main(int ac, char **av)
         write(2, "Wrong number of arguments\n", strlen("Wrong number of arguments\n"));
         exit(1);
     }
+    ft_printf("Size of block header: %d\n", sizeof(s_block_header));
     size_t  size = atoi(av[1]);
     void    **p[100];
 
     (void)size;
     (void)p;
     void *big = malloc(1);
+    void *flood = malloc(131012);
+    void *too_big = malloc(8);
     (void)big;
+    (void)flood;
+    (void)too_big;
 //    for (int i = 0; i < 100; i++)
 //        p[i] = malloc(size * (i + 1));
 //    print_page_list(page_head);
