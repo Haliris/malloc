@@ -154,7 +154,7 @@ void*   allocate_memory(long long size, int *error_status)
                     (next_header->metadata & ALLOCATED))
                 {
                     ft_printf("Page footer encountered, resetting iterator from: %p to %p\n", iterator->block_head, (s_block_header*)((char*)iterator + sizeof(s_page) + sizeof(s_block_header)));
-                    iterator->block_head = (s_block_header*)((char*)iterator + sizeof(s_page) + sizeof(s_block_header)); // test that the value is right here
+                    iterator->block_head = (s_block_header*)((char*)iterator + sizeof(s_page)); // test that the value is right here
                     return (ptr);
                 }
                 else if (next_header->metadata & ALLOCATED)
@@ -165,13 +165,14 @@ void*   allocate_memory(long long size, int *error_status)
                 if (size < original_size)
                     next_header->metadata = original_size - size - sizeof(s_block_header);
                 iterator->block_head = next_header;
-                ft_printf("NEw iterator header cursor set at: %p\n", iterator->block_head);
+                ft_printf("New iterator header cursor set at: %p\n", iterator->block_head);
                 ft_printf("Metadata of next address: %d\n", iterator->block_head->metadata);
                 return (ptr);
             }
-            ft_printf("Moving metadata pointer by: %d\n", *metadata & ~ALLOCATED);
-            metadata = metadata + (*metadata & ~ALLOCATED);
-            ft_printf("Metadata pointer now at: %p\n", metadata);
+            ft_printf("Moving from header %p by: %d\n", metadata, ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+            s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+            ft_printf("Header now at: %p\n", next_header);
+            metadata = &next_header->metadata;
             ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)page_head);
             test_count++;
             if (test_count == 6)
