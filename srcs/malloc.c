@@ -179,7 +179,7 @@ void*   allocate_memory(long long size, int *error_status)
             s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
             ft_printf("Header now at: %p\n", next_header);
             metadata = &next_header->metadata;
-            ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)page_head);
+            ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)iterator);
         }
         iterator = iterator->next;
         ft_printf("Moving on to next page...\n");
