@@ -22,7 +22,7 @@ int     request_page(int type, long page_size)
     if (!page_head)
     {
         page_head = (void*)mmap(NULL,
-                                (page_size * type) + sizeof(s_page) + sizeof(int) + sizeof(s_block_header),
+                                (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
                                 PROT_READ | PROT_WRITE,
                                 MAP_ANONYMOUS | MAP_PRIVATE,
                                 -1, 0);
@@ -34,10 +34,10 @@ int     request_page(int type, long page_size)
             return (FATAL_ERROR);
         }
         page_head->type = type;
-        page_head->free_space = (page_size * type) - sizeof(s_page) - sizeof(s_block_header) - sizeof(s_block_header);
+        page_head->free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
         page_head->block_head = (s_block_header*) ((char*)page_head + sizeof(s_page));
         page_head->block_head->metadata = page_head->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + page_head->free_space);
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + sizeof(s_block_header) + page_head->free_space);
         ft_printf("Page address at: %p\n", page_head);
         ft_printf("Page footer set at address: %p\n", page_footer);
         ft_printf("Page footer at this distance from head: %d\n", (char*)page_footer - (char*)page_head);
@@ -51,7 +51,7 @@ int     request_page(int type, long page_size)
     else
     {
         s_page* new_page = (void*)mmap(NULL,
-                                       (page_size * type) + sizeof(s_page) + sizeof(int) + sizeof(s_block_header),
+                                       (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
                                        PROT_READ | PROT_WRITE,
                                        MAP_ANONYMOUS | MAP_PRIVATE,
                                        -1, 0);
@@ -67,7 +67,7 @@ int     request_page(int type, long page_size)
         new_page->next = NULL;
         new_page->block_head = (s_block_header*)((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + new_page->free_space);
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_block_header) + sizeof(s_page) + new_page->free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         ft_printf("Page footer set at address: %p\n", page_footer);
@@ -149,6 +149,7 @@ void*   allocate_memory(long long size, int *error_status)
                 s_block_header* next_header = (s_block_header*)((char*)ptr + (*metadata & ~ALLOCATED));
                 ft_printf("Next_header address: %p\n", next_header);
                 ft_printf("Next header this far from page_head: %d\n", (char*)next_header - (char*)page_head);
+                ft_printf("Next header this far from ptr: %d\n", (char*)next_header - (char*)ptr);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
