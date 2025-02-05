@@ -236,21 +236,29 @@ int main(int ac, char **av)
     }
     ft_printf("Size of block header: %d\n", sizeof(s_block_header));
     size_t  size = atoi(av[1]);
-    void    **p[100];
+    void    **p[1000];
 
-    (void)size;
-    (void)p;
-    void *big = malloc(1);
-    void *flood = malloc(131004);
-    void *too_big = malloc(8);
-    (void)big;
-    (void)flood;
-    (void)too_big;
-//    for (int i = 0; i < 100; i++)
-//        p[i] = malloc(size * (i + 1));
-//    print_page_list(page_head);
-//    ft_printf("-----\nPrinting allocated blocks info\n-----\n");
-//    for (int k = 0; k < 100; k++)
-//        print_block_info(p[k]);
+    for (int i = 0; i < 1000; i++)
+        p[i] = malloc(size * (i + 1));
+    print_page_list(page_head);
+    ft_printf("-----\nPrinting allocated blocks info\n-----\n");
+    for (int k = 0; k < 1000; k++)
+        print_block_info(p[k]);
+    char *test = ft_itoa(123);
+    for (size_t i = 0; i < strlen(test); i++)
+        write(1, &test[i], 1);
+    write(1, "\n", 1);
+    char *dup = ft_strdup("Since words vary in length, for the purpose of measurement of text entry the definition of each word is often standardized to be five characters or keystrokes long in English,[1] including spaces and punctuation. For example, under such a method applied to plain English text the phrase I run counts as one word, but rhinoceros and let's talk would both count as two. Karat et al. found in one study of average computer users in 1999 that the average rate for transcription was 32.5 words per minute, and 19.0 words per minute for composition.[2] In the same study, when the group was divided into fast, moderate, and slow groups, the average speeds were 40 wpm, 35 wpm, and 23 wpm, respectively. With the onset of the era of desktop computers and smartphones, fast typing skills became much more widespread. As of 2019, the average typing speed on a mobile phone was 36.2 wpm with 2.3% uncorrected errors—there were significant correlations with age, level of English proficiency, and number of fingers used to type.[3] Some typists have sustained speeds over 200 wpm for a 15-second typing test with simple English words.[4] Typically, professional typists type at speeds of 43 to 80 wpm, while some positions can require 80 to 95 (usually the minimum required for dispatch positions and other time-sensitive typing jobs), and some advanced typists work at speeds above 120 wpm.[5] Two-finger typists, sometimes also referred to as hunt and peck typists, commonly reach sustained speeds of about 37 wpm for memorized text and 27 wpm when copying text, but in bursts may be able to reach much higher speeds.[6] From the 1920s through the 1970s, typing speed (along with shorthand speed) was an important secretarial qualification, and typing contests were popular and often publicized by typewriter companies as promotional tools.");
+    for (size_t i = 0; i < strlen(dup); i++)
+        write(1, &dup[i], 1);
+    write(1, "\n", 1);
+    char **split = ft_split(dup, ' ');
+    int i = 0;
+    while (split[i])
+    {
+        ft_putstr_fd(split[i], 1);
+        write(1, "\n", 1);
+        i++;
+    }
     return (0);
 }
