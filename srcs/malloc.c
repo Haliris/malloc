@@ -50,30 +50,34 @@ int     request_page(int type, long page_size)
     }
     else
     {
-        s_page* new_page = (void*)mmap(NULL,
-                                       (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
-                                       PROT_READ | PROT_WRITE,
-                                       MAP_ANONYMOUS | MAP_PRIVATE,
-                                       -1, 0);
+        s_page *new_page = (void*)mmap(NULL,
+                                (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
+                                PROT_READ | PROT_WRITE,
+                                MAP_ANONYMOUS | MAP_PRIVATE,
+                                -1, 0);
+
         if (new_page == MAP_FAILED)
         {
             ft_putstr_fd("Fatal error: ", STDERR_FILENO);
             ft_putnbr_fd(errno, STDERR_FILENO);
             write(2, "\n", 1);
-            return (FATAL_ERROR); // need to unmap and free everything, so need to find a code to distinguish. But unmapping memory below the caller is dangerous, so should I just do nothing and wait for the free call??
+            return (FATAL_ERROR);
         }
         new_page->type = type;
-        new_page->free_space = (page_size * type) - sizeof(s_page) - sizeof(s_block_header) - sizeof(s_block_header);
-        new_page->next = NULL;
-        new_page->block_head = (s_block_header*)((char*)new_page + sizeof(s_page));
+        new_page->free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
+        new_page->block_head = (s_block_header*) ((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_block_header) + sizeof(s_page) + new_page->free_space);
+        s_block_header* page_footer = (s_block_header*)((char*)new_page + sizeof(s_page) + sizeof(s_block_header) + new_page->free_space);
+        ft_printf("Page address at: %p\n", new_page);
+        ft_printf("Page footer set at address: %p\n", page_footer);
+        ft_printf("Page footer at this distance from head: %d\n", (char*)page_footer - (char*)new_page);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
-        ft_printf("Page footer set at address: %p\n", page_footer);
         ft_printf("Page footer metadata size: %d\n", page_footer->metadata & ~ALLOCATED);
         ft_print_bits(page_footer->metadata);
-        s_page* iterator = page_head;
+        ft_printf("Page head metadata set at: %p\n", new_page->block_head);
+        ft_printf("Page head metadata value: %d\n", new_page->block_head->metadata);
+        s_page *iterator = page_head;
         while (iterator->next != NULL)
             iterator = iterator->next;
         iterator->next = new_page;
@@ -118,14 +122,13 @@ void*   allocate_memory(long long size, int *error_status)
 {
     s_page *iterator = page_head;
     void   *ptr;
-    int test_count = 0;
 
     ft_printf("----\n Allocating memory\n----\n");
-
     while (iterator)
     {
         if (iterator->free_space < (long long)size) // add check with largest free block as well
         {
+            ft_printf("Not enough space in page, skipping\n");
             iterator = iterator->next;
             continue;
         }
@@ -134,7 +137,10 @@ void*   allocate_memory(long long size, int *error_status)
         {
             if (((*metadata & ~ALLOCATED) == 0) &&
                 *metadata & ALLOCATED)// End of the page if 00000.....001
+            {
+                ft_printf("Reached page footer, moving on to next page...\n");
                 break;
+            }
             if ((*metadata & ~ALLOCATED) >= size &&
                 (*metadata & ALLOCATED) == 0)
             {
@@ -148,7 +154,7 @@ void*   allocate_memory(long long size, int *error_status)
                 ft_printf("Operation to find next header: %p + %d\n", ptr, *metadata & ~ALLOCATED);
                 s_block_header* next_header = (s_block_header*)((char*)ptr + (*metadata & ~ALLOCATED));
                 ft_printf("Next_header address: %p\n", next_header);
-                ft_printf("Next header this far from page_head: %d\n", (char*)next_header - (char*)page_head);
+                ft_printf("Next header this far from page_head: %d\n", (char*)next_header - (char*)iterator);
                 ft_printf("Next header this far from ptr: %d\n", (char*)next_header - (char*)ptr);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
@@ -174,12 +180,11 @@ void*   allocate_memory(long long size, int *error_status)
             ft_printf("Header now at: %p\n", next_header);
             metadata = &next_header->metadata;
             ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)page_head);
-            test_count++;
-            if (test_count == 6)
-                break;
         }
         iterator = iterator->next;
+        ft_printf("Moving on to next page...\n");
     }
+    ft_printf("No good page found, returning NO_GOOD_PAGE code\n");
     *error_status = NO_GOOD_PAGE;
     return (NULL);
 }
