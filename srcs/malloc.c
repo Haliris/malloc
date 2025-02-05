@@ -118,6 +118,7 @@ void*   allocate_memory(long long size, int *error_status)
 {
     s_page *iterator = page_head;
     void   *ptr;
+    int test_count = 0;
 
     ft_printf("----\n Allocating memory\n----\n");
 
@@ -144,32 +145,35 @@ void*   allocate_memory(long long size, int *error_status)
                 *metadata = size;
                 ft_printf("Metadata of ptr: %d\n", *metadata);
                 *metadata |= ALLOCATED;
-                s_block_header* next_header = (s_block_header*)((char*)metadata + (*metadata & ~ALLOCATED));
-                ft_printf("Operation to find next header: metadata + %d\n", *metadata & ~ALLOCATED);
+                ft_printf("Operation to find next header: %p + %d\n", ptr, *metadata & ~ALLOCATED);
+                s_block_header* next_header = (s_block_header*)((char*)ptr + (*metadata & ~ALLOCATED));
                 ft_printf("Next_header address: %p\n", next_header);
                 ft_printf("Next header this far from page_head: %d\n", (char*)next_header - (char*)page_head);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
-                    iterator->block_head = (s_block_header*)((char*)page_head + sizeof(s_page)); // test that the value is right here
+                    ft_printf("Page footer encountered, resetting iterator from: %p to %p\n", iterator->block_head, (s_block_header*)((char*)iterator + sizeof(s_page) + sizeof(s_block_header)));
+                    iterator->block_head = (s_block_header*)((char*)iterator + sizeof(s_page) + sizeof(s_block_header)); // test that the value is right here
                     return (ptr);
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
-                    iterator->block_head = next_header;
+                    page_head->block_head = next_header;
                     return (ptr);
                 }
                 if (size < original_size)
-                    next_header->metadata = original_size - size;
+                    next_header->metadata = original_size - size - sizeof(s_block_header);
                 iterator->block_head = next_header;
-                ft_printf("Metadata of next address: %d\n", next_header->metadata);
+                ft_printf("NEw iterator header cursor set at: %p\n", iterator->block_head);
+                ft_printf("Metadata of next address: %d\n", iterator->block_head->metadata);
                 return (ptr);
             }
             ft_printf("Moving metadata pointer by: %d\n", *metadata & ~ALLOCATED);
             metadata = metadata + (*metadata & ~ALLOCATED);
             ft_printf("Metadata pointer now at: %p\n", metadata);
             ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)page_head);
-            if (*metadata == 0)
+            test_count++;
+            if (test_count == 6)
                 break;
         }
         iterator = iterator->next;
@@ -230,7 +234,7 @@ int main(int ac, char **av)
     (void)size;
     (void)p;
     void *big = malloc(1);
-    void *flood = malloc(131012);
+    void *flood = malloc(131004);
     void *too_big = malloc(8);
     (void)big;
     (void)flood;
