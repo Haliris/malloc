@@ -10,11 +10,7 @@ s_page* page_head = NULL;
 void    show_alloc_mem()
 {};
 
-void    free(void *ptr)
-{
-    if (ptr == NULL)
-        return;
-};
+
 
 int     request_page(int type, long page_size)
 {
@@ -67,6 +63,7 @@ int     request_page(int type, long page_size)
         new_page->free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
         new_page->block_head = (s_block_header*) ((char*)new_page + sizeof(s_page));
         new_page->block_head->metadata = new_page->free_space;
+        new_page->next = NULL;
         s_block_header* page_footer = (s_block_header*)((char*)new_page + sizeof(s_page) + sizeof(s_block_header) + new_page->free_space);
         ft_printf("Page address at: %p\n", new_page);
         ft_printf("Page footer set at address: %p\n", page_footer);
@@ -118,6 +115,76 @@ void*    realloc(void *ptr, size_t size)
     return (p); //same as malloc
 };
 
+void    coalesce_blocks(s_page* page)
+{
+    int *metadata = &page->block_head->metadata;
+    while (1)
+    {
+        if (((*metadata & ~ALLOCATED) == 0) &&
+                *metadata & ALLOCATED)// End of the page if 00000.....001
+            {
+                ft_printf("Coalesce: Reached page footer, moving on to next page...\n");
+                break;
+            }
+        s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+        if (*metadata & ALLOCATED)
+        {
+            ft_printf("Coalesce: current block %p marked as allocated, skipping\n", metadata);
+            metadata = &next_header->metadata;
+            continue;
+        }
+        if (next_header->metadata & ~ALLOCATED) 
+        {
+            ft_printf("Coalesce: current block %p and next block %p are free, merging...\n", metadata, next_header);
+            *metadata = *metadata + next_header->metadata;
+            next_header->metadata = 0;
+        }
+    }
+}
+
+void    free(void *ptr)
+{
+    if (ptr == NULL)
+        return;
+    s_page  *iterator = page_head;
+    while (iterator)
+    {
+        int *metadata = &iterator->block_head->metadata;
+        while (1)
+        {
+            void *block = (void*) ((char*)metadata + sizeof(s_block_header));
+            if (((*metadata & ~ALLOCATED) == 0) &&
+                *metadata & ALLOCATED)// End of the page if 00000.....001
+            {
+                ft_printf("Free: Reached page footer, moving on to next page...\n");
+                break;
+            }
+            if (block == ptr)
+            {
+                ft_printf("Free: Found block %p in page %p\n", ptr, iterator);
+                if (!(*metadata & ~ALLOCATED))
+                {
+                    ft_printf("Free: Found block %p is NOT allocated, aborting free\n", ptr, iterator);
+                    return;
+                }
+                else
+                {
+                    *metadata ^= ALLOCATED; // Is the XOR correct?
+                    coalesce_blocks(iterator); 
+                    check_for_page_release(iterator);
+                    return;
+                }
+            }
+            else
+            {
+                s_block_header* next_header = (s_block_header*)((char*)block + (*metadata & ~ALLOCATED));
+                metadata = &next_header->metadata;
+            }
+        }
+        iterator = iterator->next;
+    }
+};
+
 void*   allocate_memory(long long size, int *error_status)
 {
     s_page *iterator = page_head;
@@ -128,38 +195,38 @@ void*   allocate_memory(long long size, int *error_status)
     {
         if (iterator->free_space < (long long)size) // add check with largest free block as well
         {
-            ft_printf("Not enough space in page, skipping\n");
+            ft_printf("Malloc: Not enough space in page, skipping\n");
             iterator = iterator->next;
             continue;
         }
-        int* metadata = &iterator->block_head->metadata;
+        int *metadata = &iterator->block_head->metadata;
         while (1) 
         {
             if (((*metadata & ~ALLOCATED) == 0) &&
                 *metadata & ALLOCATED)// End of the page if 00000.....001
             {
-                ft_printf("Reached page footer, moving on to next page...\n");
+                ft_printf("Malloc: Reached page footer, moving on to next page...\n");
                 break;
             }
             if ((*metadata & ~ALLOCATED) >= size &&
                 (*metadata & ALLOCATED) == 0)
             {
                 ptr = (void*) ((char*)metadata + sizeof(s_block_header));
-                ft_printf("ptr: %p\n", ptr);
+                ft_printf("Malloc: ptr: %p\n", ptr);
                 long long original_size = *metadata & ~ALLOCATED;
-                ft_printf("Original size of page before alloc: %d\n", original_size);
+                ft_printf("Malloc: Original size of page before alloc: %d\n", original_size);
                 *metadata = size;
-                ft_printf("Metadata of ptr: %d\n", *metadata);
+                ft_printf("Malloc: Metadata of ptr: %d\n", *metadata);
                 *metadata |= ALLOCATED;
-                ft_printf("Operation to find next header: %p + %d\n", ptr, *metadata & ~ALLOCATED);
+                ft_printf("Malloc: Operation to find next header: %p + %d\n", ptr, *metadata & ~ALLOCATED);
                 s_block_header* next_header = (s_block_header*)((char*)ptr + (*metadata & ~ALLOCATED));
-                ft_printf("Next_header address: %p\n", next_header);
-                ft_printf("Next header this far from page_head: %d\n", (char*)next_header - (char*)iterator);
-                ft_printf("Next header this far from ptr: %d\n", (char*)next_header - (char*)ptr);
+                ft_printf("Malloc: Next_header address: %p\n", next_header);
+                ft_printf("Malloc: Next header this far from page_head: %d\n", (char*)next_header - (char*)iterator);
+                ft_printf("Malloc: Next header this far from ptr: %d\n", (char*)next_header - (char*)ptr);
                 if ((next_header->metadata & ~ALLOCATED) == 0 &&
                     (next_header->metadata & ALLOCATED))
                 {
-                    ft_printf("Page footer encountered, resetting iterator from: %p to %p\n", iterator->block_head, (s_block_header*)((char*)iterator + sizeof(s_page) + sizeof(s_block_header)));
+                    ft_printf("Malloc: Page footer encountered, resetting iterator from: %p to %p\n", iterator->block_head, (s_block_header*)((char*)iterator + sizeof(s_page) + sizeof(s_block_header)));
                     iterator->block_head = (s_block_header*)((char*)iterator + sizeof(s_page)); // test that the value is right here
                     return (ptr);
                 }
@@ -171,20 +238,20 @@ void*   allocate_memory(long long size, int *error_status)
                 if (size < original_size)
                     next_header->metadata = original_size - size - sizeof(s_block_header);
                 iterator->block_head = next_header;
-                ft_printf("New iterator header cursor set at: %p\n", iterator->block_head);
-                ft_printf("Metadata of next address: %d\n", iterator->block_head->metadata);
+                ft_printf("Malloc: New iterator header cursor set at: %p\n", iterator->block_head);
+                ft_printf("Malloc: Metadata of next address: %d\n", iterator->block_head->metadata);
                 return (ptr);
             }
-            ft_printf("Moving from header %p by: %d\n", metadata, ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+            ft_printf("Malloc: Moving from header %p by: %d\n", metadata, ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
             s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
-            ft_printf("Header now at: %p\n", next_header);
+            ft_printf("Malloc: Header now at: %p\n", next_header);
             metadata = &next_header->metadata;
-            ft_printf("Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)iterator);
+            ft_printf("Malloc: Metadata pointer now this far from head: %d\n", (char*)metadata - (char*)iterator);
         }
         iterator = iterator->next;
-        ft_printf("Moving on to next page...\n");
+        ft_printf("Malloc: Moving on to next page...\n");
     }
-    ft_printf("No good page found, returning NO_GOOD_PAGE code\n");
+    ft_printf("Malloc: No good page found, returning NO_GOOD_PAGE code\n");
     *error_status = NO_GOOD_PAGE;
     return (NULL);
 }
