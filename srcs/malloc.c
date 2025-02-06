@@ -167,12 +167,15 @@ void    free(void *ptr)
     if (ptr == NULL)
         return;
     s_page  *iterator = page_head;
+    ft_printf("Free: requesting to free %p\n", ptr);
     while (iterator)
     {
-        int *metadata = &iterator->block_head->metadata;
+        s_block_header *header = (s_block_header*)((char*)iterator + sizeof(s_page));
+        int *metadata = &header->metadata;
         while (1)
         {
             void *block = (void*) ((char*)metadata + sizeof(s_block_header));
+            ft_printf("Free: examining block: %p\n", block);
             if (((*metadata & ~ALLOCATED) == 0) &&
                 *metadata & ALLOCATED)// End of the page if 00000.....001
             {
@@ -201,7 +204,9 @@ void    free(void *ptr)
             }
             else
             {
-                s_block_header* next_header = (s_block_header*)((char*)block + (*metadata & ~ALLOCATED));
+                s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+                ft_printf("Free: moving from header %p to next header: %p\n", metadata, &next_header->metadata);
+                ft_printf("Free: Operation to move to next pointer: %d\n",(char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
                 metadata = &next_header->metadata;
             }
         }
@@ -326,15 +331,10 @@ int main(int ac, char **av)
         exit(1);
     }
     ft_printf("Size of block header: %d\n", sizeof(s_block_header));
-    size_t  size = atoi(av[1]);
-    void    **p[10];
+    (void)av;
 
-    for (int i = 0; i < 10; i++)
-        p[i] = malloc(size * (i + 1));
     print_page_list(page_head);
     ft_printf("-----\nPrinting allocated blocks info\n-----\n");
-    for (int k = 0; k < 10; k++)
-        print_block_info(p[k]);
     char *test = ft_itoa(123);
     for (size_t i = 0; i < strlen(test); i++)
         write(1, &test[i], 1);
