@@ -16,6 +16,12 @@
 # define IS_SMALL_TYPE(r_size, p_size) (SMALL * (((r_size >= (TINY * p_size)) * ((r_size < (LARGE * p_size))))));
 # define IS_TINY_TYPE(r_size, p_size) (TINY * (r_size < SMALL * p_size));
 
+typedef enum t_bool
+{
+    FALSE = 0,
+    TRUE = 1
+} e_bool;
+
 void    print_page_list(s_page *page_head);
 void    print_block_info(void *ptr);
 void    ft_print_bits(long nb);
