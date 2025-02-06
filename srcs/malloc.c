@@ -12,9 +12,10 @@ void    show_alloc_mem()
 
 int     request_page(int type, long page_size)
 {
-    ft_printf("------\nRequesting page\n------\n");
+    ft_printf("------\nRequest page\n------\n");
     if (!page_head)
     {
+        ft_printf("Requesting page with size: %d\n", page_size * type);
         page_head = (void*)mmap(NULL,
                                 (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
                                 PROT_READ | PROT_WRITE,
@@ -44,6 +45,7 @@ int     request_page(int type, long page_size)
     }
     else
     {
+        ft_printf("Requesting page with size: %d\n", page_size * type);
         s_page *new_page = (void*)mmap(NULL,
                                 (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
                                 PROT_READ | PROT_WRITE,
@@ -137,7 +139,7 @@ void    coalesce_blocks(s_page* page)
             ft_printf("Coalesce: current block %p and next block %p are free, merging...\n", metadata, next_header);
             page->free_space -= *metadata;
             ft_printf("Coalesce: metadata used to be %d\n", *metadata);
-            *metadata = *metadata + next_header->metadata;
+            *metadata = *metadata + next_header->metadata + sizeof(s_block_header);
             ft_printf("Coalesce: metadata now is %d at adress %p\n", *metadata, metadata);
             next_header->metadata = 0;
             page->free_space += *metadata;
@@ -168,7 +170,6 @@ int    check_for_page_release(s_page *page)
         metadata = &next_header->metadata;
     }
 }
-
 void    free(void *ptr)
 {
     if (ptr == NULL)
