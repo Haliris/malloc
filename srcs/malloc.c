@@ -115,14 +115,14 @@ void*    realloc(void *ptr, size_t size)
 
 void    coalesce_blocks(s_page* page)
 {
-    s_block_header *header = (s_block_header*) page + sizeof(s_page);
+    s_block_header *header = (s_block_header*)((char*)page + sizeof(s_page));
     int *metadata = &header->metadata;
     while (1)
     {
         if (((*metadata & ~ALLOCATED) == 0) &&
                 *metadata & ALLOCATED)// End of the page if 00000.....001
             {
-                ft_printf("Coalesce: Reached page footer, moving on to next page...\n");
+                ft_printf("Coalesce: Reached page footer\n");
                 break;
             }
         s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
@@ -136,10 +136,14 @@ void    coalesce_blocks(s_page* page)
         {
             ft_printf("Coalesce: current block %p and next block %p are free, merging...\n", metadata, next_header);
             page->free_space -= *metadata;
+            ft_printf("Coalesce: metadata used to be %d\n", *metadata);
             *metadata = *metadata + next_header->metadata;
+            ft_printf("Coalesce: metadata now is %d at adress %p\n", *metadata, metadata);
             next_header->metadata = 0;
             page->free_space += *metadata;
         }
+        else
+            metadata = &next_header->metadata;
     }
 }
 
@@ -152,11 +156,14 @@ int    check_for_page_release(s_page *page)
         if (((*metadata & ~ALLOCATED) == 0) &&
             *metadata & ALLOCATED)// End of the page if 00000.....001
         {
-            ft_printf("Coalesce: Reached page footer, moving on to next page.\n");
+            ft_printf("Check for page release: Page is empty, releasing...\n");
             return (TRUE);
         }
         else if (*metadata & ALLOCATED)
+        {
+            ft_printf("Check for page release: Page is not empty.\n");
             return (FALSE);
+        }
         s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
         metadata = &next_header->metadata;
     }
@@ -196,8 +203,10 @@ void    free(void *ptr)
                     coalesce_blocks(iterator); 
                     if (check_for_page_release(iterator) == TRUE)
                     {
-                        munmap(iterator, iterator->block_head->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
-                        ft_printf("Free: releasing page %p with size %d\n", iterator, iterator->block_head->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
+                        ft_printf("Free: releasing page %p with size %d\n", iterator, header->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
+                        ft_printf("Free: released page metadata at address : %p\n", &header->metadata);
+                        munmap(iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
+                        iterator = NULL;
                     }
                     return;
                 }
