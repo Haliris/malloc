@@ -129,17 +129,21 @@ void    coalesce_blocks(s_page* page)
             }
         void *ptr = (void*) ((char*)metadata + sizeof(s_block_header));
         s_block_header* next_header = (s_block_header*)((char*)ptr + (*metadata & ~ALLOCATED));
+        ft_printf("Coalesce: Next header set at %p\n", next_header);
+        ft_printf("Coalesce: Next header metadata value at %d\n", next_header->metadata & ~ALLOCATED);
+        ft_printf("Coalesce: Next header allocated status: %d\n", next_header->metadata & ALLOCATED);
         if (*metadata & ALLOCATED)
         {
             ft_printf("Coalesce: current block %p marked as allocated, skipping\n", metadata);
             metadata = &next_header->metadata;
             continue;
         }
-        if (next_header->metadata & ~ALLOCATED)
+        if (!(next_header->metadata & ALLOCATED))
         {
             ft_printf("Coalesce: current block %p and next block %p are free, merging...\n", metadata, next_header);
             page->free_space -= *metadata;
             ft_printf("Coalesce: metadata used to be %d\n", *metadata);
+            ft_printf("Coalesce: Doing operation : %d + %d + %d\n", *metadata, next_header->metadata, sizeof(s_block_header));
             *metadata = *metadata + next_header->metadata + sizeof(s_block_header);
             ft_printf("Coalesce: metadata now is %d at adress %p\n", *metadata, metadata);
             next_header->metadata = 0;
@@ -152,7 +156,7 @@ void    coalesce_blocks(s_page* page)
 
 int    check_for_page_release(s_page *page)
 {
-    s_block_header *header = (s_block_header*) page + sizeof(s_page);
+    s_block_header *header = (s_block_header*)((char*)page + sizeof(s_page));
     int *metadata = &header->metadata;
     while (1)
     {
