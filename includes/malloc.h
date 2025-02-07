@@ -23,7 +23,15 @@ typedef enum t_bool
 } e_bool;
 
 void    print_page_list(s_page *page_head);
+int     request_page(int type, long page_size);
+int     init_pages(long* page_size, long requested_size);
+void    coalesce_blocks(s_page* page);
+int     check_for_page_release(s_page *page);
 void    print_block_info(void *ptr);
 void    ft_print_bits(long nb);
+void    free(void *ptr);
+void    *allocate_memory(long long size, int *error_status);
+void    *malloc(size_t size);
+
 #endif
 

@@ -107,12 +107,82 @@ int    init_pages(long* page_size, long requested_size)
     return (SUCCESS);
 }
 
-void*    realloc(void *ptr, size_t size)
+void    *search_address(void *ptr, s_page *iterator)
 {
-    (void)ptr;
-    (void)size;
-    void *p = NULL;
-    return (p); //same as malloc
+    while (iterator)
+    {
+        s_block_header *header = (s_block_header*)((char*)iterator + sizeof(s_page));
+        int *metadata = &header->metadata;
+        while (1)
+        {
+            void *block = (void*) ((char*)metadata + sizeof(s_block_header));
+            ft_printf("search_address: examining block: %p\n", block);
+            if (((*metadata & ~ALLOCATED) == 0) &&
+                *metadata & ALLOCATED)// End of the page if 00000.....001
+            {
+                ft_printf("search_address: Reached page footer, moving on to next page...\n");
+                break;
+            }
+            if (block == ptr)
+                return block;
+            else
+            {
+                s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+                ft_printf("search_address: moving from header %p to next header: %p\n", metadata, &next_header->metadata);
+                ft_printf("search_address: Operation to move to next pointer: %d\n",(char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
+                metadata = &next_header->metadata;
+            }
+        }
+        iterator = iterator->next;
+    }
+    return (NULL);
+}
+
+void    *realloc(void *ptr, size_t size)
+{
+    void    *payload;
+    s_page  *iterator;
+
+    if (size == 0 && ptr)
+    {
+        free(ptr);
+        return (NULL);
+    }
+    if (!ptr)
+    {
+        payload = malloc(size);
+        if (!payload)
+            return (NULL);
+    }
+    else
+    {
+        void *block = search_address(ptr, iterator);
+        if (!block)
+        {
+            payload = malloc(size);
+            if (!payload)
+                return (NULL);
+        };
+        s_block_header *header = (s_block_header*)((char*)block - sizeof(s_block_header));
+        int *metadata = &header->metadata;
+        int block_size = *metadata & ~ALLOCATED;
+        while (1)
+        {
+            if (((*metadata & ~ALLOCATED) == 0) &&
+                *metadata & ALLOCATED)// End of the page if 00000.....001
+            {
+                ft_printf("Realloc: Reached page footer\n");
+                break;
+            }
+        }
+        //look for next header and add size, do it for as long as allocated is false
+        //if we can find enough headers to match requested size, merge them all and return ptr;
+        //if not, call malloc with requested size
+        //free old ptr
+        //return new ptr
+    }
+
+    return (payload); //same as malloc
 };
 
 void    coalesce_blocks(s_page* page)
@@ -175,59 +245,39 @@ int    check_for_page_release(s_page *page)
         metadata = &next_header->metadata;
     }
 }
+
+
+
 void    free(void *ptr)
 {
+    s_page* iterator = page_head;
     if (ptr == NULL)
         return;
-    s_page  *iterator = page_head;
-    ft_printf("Free: requesting to free %p\n", ptr);
-    while (iterator)
+    void *block = search_address(ptr, iterator);
+    if (!block)
+        return;
+    s_block_header *header = (s_block_header*)((char*)block - sizeof(s_block_header));
+    int *metadata = &header->metadata;
+    ft_printf("Free: Found block %p", block);
+    if (!(*metadata & ~ALLOCATED))
     {
-        s_block_header *header = (s_block_header*)((char*)iterator + sizeof(s_page));
-        int *metadata = &header->metadata;
-        while (1)
-        {
-            void *block = (void*) ((char*)metadata + sizeof(s_block_header));
-            ft_printf("Free: examining block: %p\n", block);
-            if (((*metadata & ~ALLOCATED) == 0) &&
-                *metadata & ALLOCATED)// End of the page if 00000.....001
-            {
-                ft_printf("Free: Reached page footer, moving on to next page...\n");
-                break;
-            }
-            if (block == ptr)
-            {
-                ft_printf("Free: Found block %p in page %p\n", ptr, iterator);
-                if (!(*metadata & ~ALLOCATED))
-                {
-                    ft_printf("Free: Found block %p is NOT allocated, aborting free\n", ptr, iterator);
-                    return;
-                }
-                else
-                {
-                    *metadata ^= ALLOCATED; // Is the XOR correct?
-                    coalesce_blocks(iterator); 
-                    if (check_for_page_release(iterator) == TRUE)
-                    {
-                        ft_printf("Free: releasing page %p with size %d\n", iterator, header->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
-                        ft_printf("Free: released page metadata at address : %p\n", &header->metadata);
-                        munmap(iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
-                        iterator = NULL;
-                    }
-                    return;
-                }
-            }
-            else
-            {
-                s_block_header* next_header = (s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
-                ft_printf("Free: moving from header %p to next header: %p\n", metadata, &next_header->metadata);
-                ft_printf("Free: Operation to move to next pointer: %d\n",(char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
-                metadata = &next_header->metadata;
-            }
-        }
-        iterator = iterator->next;
+        ft_printf("Free: Found block %p is NOT allocated, aborting free\n", block);
+        return;
     }
-};
+    else
+    {
+        *metadata ^= ALLOCATED; // Is the XOR correct?
+        coalesce_blocks(iterator); 
+        if (check_for_page_release(iterator) == TRUE)
+        {
+            ft_printf("Free: releasing page %p with size %d\n", iterator, header->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
+            ft_printf("Free: released page metadata at address : %p\n", &header->metadata);
+            munmap(iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
+            iterator = NULL;
+        }
+        return;
+    }
+}
 
 void*   allocate_memory(long long size, int *error_status)
 {
