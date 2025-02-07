@@ -22,17 +22,17 @@ ifeq ($(HOSTTYPE),)
 	HOSTTYPE = $(shell uname -m)_$(shell uname -s)
 endif
 
-#NAME = libft_malloc$(HOSTTYPE).so
-NAME = malloc_test
+NAME = libft_malloc$(HOSTTYPE).so
+#NAME = malloc_test
 
 all: $(NAME)
 
 $(NAME): $(OBJS) $(H_DEPS)
 	make -C $(LIBFT_PATH) all
-	$(CC) $(CFLAGS) $(OBJS) $(LIBFT) -o $(NAME)
+	$(CC) $(CFLAGS) -shared $(OBJS) $(LIBFT) -o $(NAME)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) -fPIC $(INCLUDES) -c $< -o $@
 
 -include $(DEPS)
 

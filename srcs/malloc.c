@@ -337,37 +337,36 @@ void    *malloc(size_t size)
     return (payload);
 };
 
-
-int main(int ac, char **av)
-{
-    if (ac != 2)
-    {
-        write(2, "Wrong number of arguments\n", strlen("Wrong number of arguments\n"));
-        exit(1);
-    }
-    ft_printf("Size of block header: %d\n", sizeof(s_block_header));
-    (void)av;
-
-    print_page_list(page_head);
-    char *test = ft_itoa(123);
-    for (size_t i = 0; i < strlen(test); i++)
-        write(1, &test[i], 1);
-    write(1, "\n", 1);
-    char *dup = ft_strdup("Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length ");
-    for (size_t i = 0; i < strlen(dup); i++)
-        write(1, &dup[i], 1);
-    write(1, "\n", 1);
-    char **split = ft_split(dup, ' ');
-    free(dup);
-    free(test);
-    int i = 0;
-    while (split[i])
-    {
-        ft_putstr_fd(split[i], 1);
-        write(1, "\n", 1);
-        free(split[i]);
-        i++;
-    }
-    free(split);
-    return (0);
-}
+//int main(int ac, char **av)
+//{
+//    if (ac != 2)
+//    {
+//        write(2, "Wrong number of arguments\n", strlen("Wrong number of arguments\n"));
+//        exit(1);
+//    }
+//    ft_printf("Size of block header: %d\n", sizeof(s_block_header));
+//    (void)av;
+//
+//    print_page_list(page_head);
+//    char *test = ft_itoa(123);
+//    for (size_t i = 0; i < strlen(test); i++)
+//        write(1, &test[i], 1);
+//    write(1, "\n", 1);
+//    char *dup = ft_strdup("Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length ");
+//    for (size_t i = 0; i < strlen(dup); i++)
+//        write(1, &dup[i], 1);
+//    write(1, "\n", 1);
+//    char **split = ft_split(dup, ' ');
+//    free(dup);
+//    free(test);
+//    int i = 0;
+//    while (split[i])
+//    {
+//        ft_putstr_fd(split[i], 1);
+//        write(1, "\n", 1);
+//        free(split[i]);
+//        i++;
+//    }
+//    free(split);
+//    return (0);
+//}
