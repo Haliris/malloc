@@ -31,6 +31,7 @@ typedef enum t_bool
 } e_bool;
 
 void    print_page_list(s_page *page_head);
+void    print_page_memory(s_page *page);
 int     request_page(int type, long page_size);
 int     init_pages(long* page_size, long requested_size);
 void    coalesce_blocks(s_page* page);

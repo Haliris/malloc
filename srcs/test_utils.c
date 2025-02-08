@@ -26,6 +26,24 @@ void    ft_print_bits(long nb) // chat gpt shit, remove aaah
     ft_printf("\n");
 }
 
+void    print_page_memory(s_page *page)
+{
+    ft_printf("-----\nPrinting page %p state\n-----\n", page);
+    s_block_header *header = GET_FIRST_HEADER(page);
+    int *metadata = &header->metadata;
+    int block_num = 1;
+    while (1)
+    {
+        if (IS_PAGE_FOOTER(*metadata))
+            break;
+        ft_printf("Print page memory: Block number %d of size %d\n", block_num, *metadata & ~ALLOCATED);
+        s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
+        metadata = &next_header->metadata;
+        block_num++;
+    }
+    ft_printf("Print page memory: total blocks number: %d\n", block_num - 1);
+}
+
 void    print_page_list(s_page *page_head)
 {
     s_page* iterator;
