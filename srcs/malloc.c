@@ -107,6 +107,26 @@ int    init_pages(long* page_size, long requested_size)
     return (SUCCESS);
 }
 
+void    remove_page_node(s_page *released_page)
+{
+    s_page *iterator = page_head;
+
+    if (!released_page)
+        return;
+    while (iterator)
+    {
+        if (iterator->next && iterator->next == released_page)
+        {
+            if (iterator->next->next)
+                iterator->next = iterator->next->next;
+            else
+                iterator->next = NULL;
+            break;
+        }
+        iterator = iterator->next;
+    }
+}
+
 void    *search_address(void *ptr, s_page *iterator)
 {
     while (iterator)
@@ -273,6 +293,7 @@ void    free(void *ptr)
             ft_printf("Free: releasing page %p with size %d\n", iterator, header->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
             ft_printf("Free: released page metadata at address : %p\n", &header->metadata);
             munmap(iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
+            remove_page_node(iterator);
             iterator = NULL;
         }
         return;
