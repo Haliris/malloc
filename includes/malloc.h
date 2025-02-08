@@ -17,6 +17,7 @@
 # define IS_TINY_TYPE(r_size, p_size) (TINY * (r_size < SMALL * p_size))
 
 # define IS_PAGE_FOOTER(metadata)  (((metadata & ~ALLOCATED) == 0) && (metadata & ALLOCATED))
+# define GET_BLOCK_PTR(metadata) ((void*) ((char*)metadata + sizeof(s_block_header)))
 
 typedef enum t_bool
 {
