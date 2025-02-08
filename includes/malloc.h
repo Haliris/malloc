@@ -12,9 +12,11 @@
 # define FATAL_ERROR 1
 # define NO_GOOD_PAGE 2
 # define MAX_PAGES 1024
-# define IS_LARGE_TYPE(r_size, p_size) (LARGE * (r_size >= (LARGE * p_size)));
-# define IS_SMALL_TYPE(r_size, p_size) (SMALL * (((r_size >= (TINY * p_size)) * ((r_size < (LARGE * p_size))))));
-# define IS_TINY_TYPE(r_size, p_size) (TINY * (r_size < SMALL * p_size));
+# define IS_LARGE_TYPE(r_size, p_size) (LARGE * (r_size >= (LARGE * p_size)))
+# define IS_SMALL_TYPE(r_size, p_size) (SMALL * (((r_size >= (TINY * p_size)) * ((r_size < (LARGE * p_size))))))
+# define IS_TINY_TYPE(r_size, p_size) (TINY * (r_size < SMALL * p_size))
+
+# define IS_PAGE_FOOTER(metadata)  (((metadata & ~ALLOCATED) == 0) && (metadata & ALLOCATED))
 
 typedef enum t_bool
 {

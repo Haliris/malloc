@@ -137,8 +137,7 @@ void    *search_address(void *ptr, s_page *iterator)
         {
             void *block = (void*) ((char*)metadata + sizeof(s_block_header));
             ft_printf("search_address: examining block: %p\n", block);
-            if (((*metadata & ~ALLOCATED) == 0) &&
-                *metadata & ALLOCATED)// End of the page if 00000.....001
+            if (IS_PAGE_FOOTER(*metadata))
             {
                 ft_printf("search_address: Reached page footer, moving on to next page...\n");
                 break;
@@ -188,8 +187,7 @@ void    *realloc(void *ptr, size_t size)
         int block_size = *metadata & ~ALLOCATED;
         while (1)
         {
-            if (((*metadata & ~ALLOCATED) == 0) &&
-                *metadata & ALLOCATED)// End of the page if 00000.....001
+            if (IS_PAGE_FOOTER(*metadata))
             {
                 ft_printf("Realloc: Reached page footer\n");
                 break;
@@ -211,8 +209,7 @@ void    coalesce_blocks(s_page* page)
     int *metadata = &header->metadata;
     while (1)
     {
-        if (((*metadata & ~ALLOCATED) == 0) &&
-                *metadata & ALLOCATED)// End of the page if 00000.....001
+        if (IS_PAGE_FOOTER(*metadata))
             {
                 ft_printf("Coalesce: Reached page footer\n");
                 break;
@@ -250,8 +247,7 @@ int    check_for_page_release(s_page *page)
     int *metadata = &header->metadata;
     while (1)
     {
-        if (((*metadata & ~ALLOCATED) == 0) &&
-            *metadata & ALLOCATED)// End of the page if 00000.....001
+        if (IS_PAGE_FOOTER(*metadata))
         {
             ft_printf("Check for page release: Page is empty, releasing...\n");
             return (TRUE);
@@ -317,8 +313,7 @@ void*   allocate_memory(long long size, int *error_status)
         int *metadata = &iterator->block_head->metadata;
         while (1) 
         {
-            if (((*metadata & ~ALLOCATED) == 0) &&
-                *metadata & ALLOCATED)// End of the page if 00000.....001
+            if (IS_PAGE_FOOTER(*metadata))
             {
                 ft_printf("Malloc: Reached page footer, moving on to next page...\n");
                 break;
