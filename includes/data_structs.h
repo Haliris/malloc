@@ -7,9 +7,9 @@
 
 typedef enum t_zone_type
 {
-    TINY = 32,
-    SMALL = 64,
-    LARGE = 128
+    TINY = 8,
+    SMALL = 16,
+    LARGE = 32
 } e_zone_type;
 
 typedef struct t_block_header

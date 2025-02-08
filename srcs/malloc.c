@@ -268,17 +268,14 @@ void    free(void *ptr)
     s_page **page_iterator = &page_head;
     if (ptr == NULL)
     {
-        ft_printf("Free: requested pointer is NULL, aborting\n");
         return;
     }
     void *block = search_address(ptr, *page_iterator);
     if (!block)
     {
-        ft_printf("Free: could not find requested pointer in pages, aborting\n");
         return;
     }
     s_block_header *header = GET_HEADER_FROM_BLOCK(block);
-    ft_printf("Free: Header is %d far from block\n", (char*)header - (char*)block);
     int *metadata = &header->metadata;
     ft_printf("Free: Found block %p with size: %d\n", block, *metadata & ~ALLOCATED);
     if (!(*metadata & ~ALLOCATED))
@@ -296,7 +293,6 @@ void    free(void *ptr)
             header = GET_FIRST_HEADER(*page_iterator);
             ft_printf("Free: releasing page %p with size %d\n", *page_iterator, header->metadata + sizeof(s_page) + 2 *sizeof(s_block_header));
             ft_printf("Free: released page metadata at address : %p\n", &header->metadata);
-            ft_printf("Free: Header used for munmap %p vs first header: %p\n", header, GET_FIRST_HEADER(*page_iterator));
             remove_page_node(*page_iterator);
             munmap(*page_iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
             *page_iterator = NULL;
@@ -346,11 +342,13 @@ void*   allocate_memory(long long size, int *error_status)
                 {
                     //ft_printf("Malloc: Page footer encountered, resetting page_iterator from: %p to %p\n", page_iterator->block_head, (s_block_header*)((char*)page_iterator + sizeof(s_page) + sizeof(s_block_header)));
                     page_iterator->block_head = GET_FIRST_HEADER(page_iterator);
+                    print_page_memory(page_iterator);
                     return (ptr);
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
                     page_head->block_head = next_header;
+                    print_page_memory(page_iterator);
                     return (ptr);
                 }
                 if (size < original_size)
@@ -358,6 +356,7 @@ void*   allocate_memory(long long size, int *error_status)
                 page_iterator->block_head = next_header;
                 //ft_printf("Malloc: New page_iterator header cursor set at: %p\n", page_iterator->block_head);
                 //ft_printf("Malloc: Metadata of next address: %d\n", page_iterator->block_head->metadata);
+                print_page_memory(page_iterator);
                 return (ptr);
             }
             //ft_printf("Malloc: Moving from header %p by: %d\n", metadata, ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
@@ -451,7 +450,7 @@ void    *malloc(size_t size)
 #include <time.h>
 
 #define N 10000
-#define MAX_ALLOC_SIZE 10000
+#define MAX_ALLOC_SIZE 1000
 
 int main() {
     srand(time(NULL));
@@ -464,7 +463,7 @@ int main() {
         ft_printf("Calling malloc with size: %d\n", size);
         ptrs[i] = malloc(size);
         ft_printf("Malloc returns: %p\n", ptrs[i]);
-        if (rand() % 2)
+        if (rand() % 10 <= 1)
         { 
             free(ptrs[i]);  // Free randomly
             ptrs[i] = NULL;
