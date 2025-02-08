@@ -160,7 +160,7 @@ void    *search_address(void *ptr, s_page *iterator)
 void    *realloc(void *ptr, size_t size)
 {
     void    *payload;
-    s_page  *iterator;
+    s_page  *iterator = NULL;
 
     if (size == 0 && ptr)
     {
@@ -185,6 +185,7 @@ void    *realloc(void *ptr, size_t size)
         s_block_header *header = (s_block_header*)((char*)block - sizeof(s_block_header));
         int *metadata = &header->metadata;
         int block_size = *metadata & ~ALLOCATED;
+        (void)block_size; //!!!!!!!!!!!!!!!!!!!!!!!
         while (1)
         {
             if (IS_PAGE_FOOTER(*metadata))
