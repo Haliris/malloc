@@ -15,9 +15,14 @@
 # define IS_LARGE_TYPE(r_size, p_size) (LARGE * (r_size >= (LARGE * p_size)))
 # define IS_SMALL_TYPE(r_size, p_size) (SMALL * (((r_size >= (TINY * p_size)) * ((r_size < (LARGE * p_size))))))
 # define IS_TINY_TYPE(r_size, p_size) (TINY * (r_size < SMALL * p_size))
+# define ROUND_TO_8(x) ((x + 7) &(-8));
 
 # define IS_PAGE_FOOTER(metadata)  (((metadata & ~ALLOCATED) == 0) && (metadata & ALLOCATED))
+# define GET_FIRST_HEADER(page_iterator) ((s_block_header*)((char*)page_iterator + sizeof(s_page)))
 # define GET_BLOCK_PTR(metadata) ((void*) ((char*)metadata + sizeof(s_block_header)))
+# define GET_HEADER_FROM_BLOCK(ptr) ((s_block_header*)((char*)block - sizeof(s_block_header)))
+# define GET_NEXT_HEADER_FROM_BLOCK(ptr, metadata) ((s_block_header*)((char*)ptr + (metadata & ~ALLOCATED)))
+# define GET_NEXT_HEADER_FROM_HEADER(metadata) ((s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header))))
 
 typedef enum t_bool
 {
