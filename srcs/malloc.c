@@ -205,7 +205,7 @@ void    *realloc(void *ptr, size_t size)
             *metadata |= ALLOCATED;
             next_header->metadata = block_size - size - sizeof(s_block_header);
             ft_printf("Realloc: Size requested is SMALLER than existing block, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
-            print_page_memory(*page_iterator);
+   //         print_page_memory(*page_iterator);
             return (ptr);
         }
         while (1)
@@ -245,7 +245,7 @@ void    *realloc(void *ptr, size_t size)
                 *metadata |= ALLOCATED;
                 next_header->metadata = block_size - size - sizeof(s_block_header);
                 ft_printf("Realloc: Managed to extend block to fit new requested size, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
-                print_page_memory(*page_iterator);
+               // print_page_memory(*page_iterator);
                 return (ptr);
             }
         }
@@ -253,7 +253,6 @@ void    *realloc(void *ptr, size_t size)
         free(ptr);
         return (malloc(size));
     }
-
     return (payload); //same as malloc
 };
 
@@ -342,7 +341,7 @@ void    free(void *ptr)
     {
         *metadata ^= ALLOCATED;
         coalesce_blocks(*page_iterator); 
-        print_page_memory(*page_iterator);
+        //print_page_memory(*page_iterator);
         if (check_for_page_release(*page_iterator) == TRUE)
         {
             header = GET_FIRST_HEADER(*page_iterator);
@@ -398,13 +397,13 @@ void*   allocate_memory(long long size, int *error_status)
                 {
                     //ft_printf("Malloc: Page footer encountered, resetting page_iterator from: %p to %p\n", page_iterator->block_head, (s_block_header*)((char*)page_iterator + sizeof(s_page) + sizeof(s_block_header)));
                     page_iterator->block_head = GET_FIRST_HEADER(page_iterator);
-                    print_page_memory(page_iterator);
+          //          print_page_memory(page_iterator);
                     return (ptr);
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
                     page_head->block_head = next_header;
-                    print_page_memory(page_iterator);
+          //          print_page_memory(page_iterator);
                     return (ptr);
                 }
                 if (size < original_size)
@@ -412,7 +411,7 @@ void*   allocate_memory(long long size, int *error_status)
                 page_iterator->block_head = next_header;
                 //ft_printf("Malloc: New page_iterator header cursor set at: %p\n", page_iterator->block_head);
                 //ft_printf("Malloc: Metadata of next address: %d\n", page_iterator->block_head->metadata);
-                print_page_memory(page_iterator);
+   //             print_page_memory(page_iterator);
                 return (ptr);
             }
             //ft_printf("Malloc: Moving from header %p by: %d\n", metadata, ((*metadata & ~ALLOCATED) + sizeof(s_block_header)));
@@ -478,6 +477,15 @@ int main(int ac, char **av)
     }
     //ft_printf("Size of block header: %d\n", sizeof(s_block_header));
     (void)av;
+    char *luna;
+    luna = malloc(14000);
+    ft_printf("Luna : %p\n");
+    luna = malloc(12827);
+    ft_printf("Luna : %p\n");
+    luna = realloc(luna, 12);
+    ft_printf("Luna : %p\n");
+    luna = realloc(luna, 130000); //get Rlimit()
+    ft_printf("Luna : %p\n");
 //
     print_page_list(page_head);
     char *test = ft_itoa(123);
@@ -507,7 +515,9 @@ int main(int ac, char **av)
     void *ptr = malloc(100);
     void *re_ptr = realloc(ptr, 42);
     (void)ptr;
-    free(re_ptr);
+    (void)re_ptr;
+    void *big_ass_ptr = realloc(re_ptr, 42000);
+    free(big_ass_ptr);
     return (0);
 }
 
