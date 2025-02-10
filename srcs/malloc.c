@@ -174,6 +174,11 @@ void    *realloc(void *ptr, size_t size)
         free(ptr);
         return (NULL);
     }
+    if (size > LLONG_MAX - 7)
+        return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
+    if (size % 8 != 0)
+        size = ROUND_TO_8(size);
+    ft_printf("Realloc: Requested size: %d\n", size);
     if (!ptr)
     {
         payload = malloc(size);
@@ -193,6 +198,16 @@ void    *realloc(void *ptr, size_t size)
         int *metadata = &header->metadata;
         size_t block_size = *metadata & ~ALLOCATED;
         ft_printf("Realloc: Current block %p size: %d\n", header, *metadata & ~ALLOCATED);
+        if ((long long)size < (*metadata & ~ALLOCATED))
+        {
+            *metadata = size;
+            s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
+            *metadata |= ALLOCATED;
+            next_header->metadata = block_size - size - sizeof(s_block_header);
+            ft_printf("Realloc: Size requested is SMALLER than existing block, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
+            print_page_memory(*page_iterator);
+            return (ptr);
+        }
         while (1)
         {
             if (IS_PAGE_FOOTER(*metadata))
@@ -218,9 +233,19 @@ void    *realloc(void *ptr, size_t size)
                 (*page_iterator)->free_space += *metadata;
                 ft_printf("Realloc: block_size evaluation now at: %d\n", block_size);
             }
-            if (block_size >= size)
+            if (block_size == size)
             {
-                ft_printf("Realloc: Managed to extend block to fit new requested size, returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
+                ft_printf("Realloc: Managed to extend block to fit EXACTLY new requested size, returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
+                return (ptr);
+            }
+            else if (block_size > size)
+            {
+                *metadata = size;
+                next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
+                *metadata |= ALLOCATED;
+                next_header->metadata = block_size - size - sizeof(s_block_header);
+                ft_printf("Realloc: Managed to extend block to fit new requested size, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
+                print_page_memory(*page_iterator);
                 return (ptr);
             }
         }
@@ -480,7 +505,7 @@ int main(int ac, char **av)
     else
         ft_printf("All pages released!!!\n");
     void *ptr = malloc(100);
-    void *re_ptr = realloc(ptr, 200);
+    void *re_ptr = realloc(ptr, 42);
     (void)ptr;
     free(re_ptr);
     return (0);
