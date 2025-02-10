@@ -6,6 +6,8 @@
 #include <string.h>
 
 s_page* page_head;
+int     pages_mapped;
+int     pages_released;
 
 void    show_alloc_mem()
 {};
@@ -42,6 +44,7 @@ int     request_page(int type, long page_size)
         //ft_printf("Page head metadata set at: %p\n", page_head->block_head);
         //ft_printf("Page head metadata value: %d\n", page_head->block_head->metadata);
         ft_printf("------\nRequested page_head: %p\n------\n", page_head);
+        pages_mapped++;
     }
     else
     {
@@ -232,6 +235,8 @@ void    coalesce_blocks(s_page* page)
         }
         if (!(next_header->metadata & ALLOCATED))
         {
+            if (next_header == page->block_head)
+                page->block_head = (s_block_header*) ((char*)metadata);
             //ft_printf("Coalesce: current block %p and next block %p are free, merging...\n", metadata, next_header);
             page->free_space -= *metadata;
             //ft_printf("Coalesce: metadata used to be %d\n", *metadata);
@@ -289,9 +294,8 @@ void    free(void *ptr)
     }
     else
     {
-        *metadata ^= ALLOCATED; // Is the XOR correct?
+        *metadata ^= ALLOCATED;
         coalesce_blocks(*page_iterator); 
-        (*page_iterator)->block_head = GET_FIRST_HEADER(*page_iterator);
         print_page_memory(*page_iterator);
         if (check_for_page_release(*page_iterator) == TRUE)
         {
@@ -300,6 +304,7 @@ void    free(void *ptr)
             remove_page_node(*page_iterator);
             munmap(*page_iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
             *page_iterator = NULL;
+            pages_released++;
         }
         return;
     }
@@ -470,19 +475,15 @@ int main() {
         ft_printf("Calling malloc with size: %d\n", size);
         ptrs[i] = malloc(size);
         ft_printf("Malloc returns: %p\n", ptrs[i]);
-        if (rand() % 10 <= 1)
-        { 
+    //    if (rand() % 10 <= 1)
+     //   { 
             free(ptrs[i]);  // Free randomly
             ptrs[i] = NULL;
-        }
+      //  }
     }
-    for (int i = 0; i < N; i++)
-    {
-        if (ptrs[i])
-        {
-//            ft_printf("Calling free on ptr: %p\n", ptrs[i]);
-            free(ptrs[i]);
-        }
-    }
+    if (pages_released != pages_mapped)
+        ft_printf("Pages still in memory! %d in memory vs %d released\n", pages_mapped, pages_released);
+    else
+        ft_printf("All pages released!!!\n");
     return 0;
 }
