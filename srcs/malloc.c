@@ -206,7 +206,6 @@ void    *realloc(void *ptr, size_t size)
             *metadata |= ALLOCATED;
             next_header->metadata = block_size - size - sizeof(s_block_header);
             ft_printf("Realloc: page: %p Size requested is SMALLER than existing block, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", *page_iterator, ptr, metadata, *metadata & ~ALLOCATED);
-   //         print_page_memory(*page_iterator);
             return (ptr);
         }
         while (1)
@@ -246,16 +245,14 @@ void    *realloc(void *ptr, size_t size)
                 *metadata |= ALLOCATED;
                 next_header->metadata = block_size - size - sizeof(s_block_header);
                 ft_printf("Realloc: Managed to extend block to fit new requested size, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
-               // print_page_memory(*page_iterator);
                 return (ptr);
             }
         }
         ft_printf("Realloc: Could not extend block, calling free and malloc\n");
-        print_page_memory(*page_iterator);
         free(ptr);
         return (malloc(size));
     }
-    return (payload); //same as malloc
+    return (payload);
 };
 
 void    coalesce_blocks(s_page* page)
@@ -478,7 +475,6 @@ int main(int ac, char **av)
         write(2, "Wrong number of arguments\n", strlen("Wrong number of arguments\n"));
         exit(1);
     }
-    //ft_printf("Size of block header: %d\n", sizeof(s_block_header));
     (void)av;
     char *luna;
     luna = malloc(14000);
@@ -489,8 +485,6 @@ int main(int ac, char **av)
     ft_printf("Luna : %p\n");
     luna = realloc(luna, 130000); //get Rlimit()
     ft_printf("Luna : %p\n");
-//
-    print_page_list(page_head);
     char *test = ft_itoa(123);
     for (size_t i = 0; i < strlen(test); i++)
         write(1, &test[i], 1);
@@ -511,18 +505,17 @@ int main(int ac, char **av)
         i++;
     }
     free(split);
-    if (pages_released != pages_mapped)
-        ft_printf("Pages still in memory! %d in memory vs %d released\n", pages_mapped, pages_released);
-    else
-        ft_printf("All pages released!!!\n");
-    void *ptr = malloc(100);
+        void *ptr = malloc(100);
     ft_printf("------\nPrinting page memory before problem reallocs!\n------\n");
-    print_page_memory(page_head);
     void *re_ptr = realloc(ptr, 42);
     (void)ptr;
     (void)re_ptr;
     void *big_ass_ptr = realloc(re_ptr, 42000);
     free(big_ass_ptr);
+    if (pages_released != pages_mapped)
+        ft_printf("Pages still in memory! %d in memory vs %d released\n", pages_mapped, pages_released);
+    else
+        ft_printf("All pages released!!!\n");
     return (0);
 }
 
