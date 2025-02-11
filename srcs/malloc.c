@@ -168,6 +168,7 @@ void    *realloc(void *ptr, size_t size)
 {
     void    *payload;
     s_page  **page_iterator = &page_head;
+    size_t  ptr_size = 0;
 
     if (size == 0 && ptr)
     {
@@ -198,6 +199,7 @@ void    *realloc(void *ptr, size_t size)
         ft_printf("Realloc: header set at %p, metadata: %d\n", header, header->metadata & ~ALLOCATED);
         int *metadata = &header->metadata;
         size_t block_size = *metadata & ~ALLOCATED;
+        ptr_size = block_size;
         ft_printf("Realloc: Current block %p size: %d\n", header, *metadata & ~ALLOCATED);
         if ((long long)size < (*metadata & ~ALLOCATED))
         {
@@ -249,8 +251,14 @@ void    *realloc(void *ptr, size_t size)
             }
         }
         ft_printf("Realloc: Could not extend block, calling free and malloc\n");
+        void* payload = malloc(size);
+        if (!payload)
+        {
+            free(ptr);
+            return (NULL);
+        }
+        payload = ft_memmove(payload, ptr, ptr_size);
         free(ptr);
-        return (malloc(size));
     }
     return (payload);
 };
