@@ -11,7 +11,42 @@ int     pages_mapped;
 int     pages_released;
 
 void    show_alloc_mem()
-{};
+{
+    size_t  total_bytes = 0;
+    s_page  *page_iterator = page_head;
+    while (page_iterator)
+    {
+        switch (page_iterator->type)
+        {
+            case TINY:
+                ft_printf("TINY : ");
+                break;
+            case SMALL:
+                ft_printf("SMALL : ");
+                break;
+            case LARGE:
+                ft_printf("LARGE : ");
+                break;
+            default:
+                break;
+        }
+        ft_printf("%p\n", page_iterator);
+        s_block_header  *header = GET_FIRST_HEADER(page_iterator);
+        int             *metadata = &header->metadata;
+        while (!(IS_PAGE_FOOTER(*metadata)))
+        {
+            void           *block_ptr = GET_BLOCK_PTR(metadata);
+            s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
+            ft_printf("%p - %p: %d bytes\n", block_ptr, next_header, (*metadata & ~ALLOCATED) / 8);
+            total_bytes += *metadata & ~ALLOCATED;
+            metadata = &next_header->metadata;
+        }
+        page_iterator = page_iterator->next;
+    }
+    ft_printf("Total: ");
+    ft_putnbr_fd(total_bytes / 8, STDOUT_FILENO);
+    ft_putendl_fd(" bytes", STDOUT_FILENO);
+};
 
 int     request_page(int type, long page_size)
 {
@@ -514,8 +549,8 @@ int main(int ac, char **av)
         i++;
     }
     free(split);
-        void *ptr = malloc(100);
-    ft_printf("------\nPrinting page memory before problem reallocs!\n------\n");
+    void *ptr = malloc(100);
+    show_alloc_mem();
     void *re_ptr = realloc(ptr, 42);
     (void)ptr;
     (void)re_ptr;

@@ -12,22 +12,19 @@
 
 #include "libft.h"
 
-void	ft_putnbr_fd(int n, int fd)
+void	ft_putnbr_fd(long long n, int fd)
 {
-	long int	number;
-
-	number = n;
-	if (number < 0)
+	if (n < 0)
 	{
 		ft_putchar_fd('-', fd);
-		number *= -1;
+		n *= -1;
 	}
-	if (number > 9)
+	if (n > 9)
 	{
-		ft_putnbr_fd(number / 10, fd);
-		ft_putchar_fd(number % 10 + 48, fd);
+		ft_putnbr_fd(n / 10, fd);
+		ft_putchar_fd(n % 10 + 48, fd);
 		return ;
 	}
-	ft_putchar_fd(number + 48, fd);
+	ft_putchar_fd(n + 48, fd);
 	return ;
 }
