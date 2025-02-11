@@ -2,6 +2,7 @@
 // https://my.eng.utah.edu/~cs4400/malloc.pdf
 #include "../includes/malloc.h"
 #include "../includes/data_structs.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
