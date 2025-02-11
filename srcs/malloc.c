@@ -342,6 +342,7 @@ void    free(void *ptr)
     else
     {
         *metadata ^= ALLOCATED;
+        ft_memset(ptr, 0, *metadata);
         coalesce_blocks(*page_iterator); 
         //print_page_memory(*page_iterator);
         if (check_for_page_release(*page_iterator) == TRUE)
