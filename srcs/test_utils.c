@@ -36,7 +36,7 @@ void    print_page_memory(s_page *page)
     {
         if (IS_PAGE_FOOTER(*metadata))
             break;
-        ft_printf("Print page memory: Block number %d of size %d\n", block_num, *metadata & ~ALLOCATED);
+        ft_printf("Print page memory: Block number %d of size %d at address %p\n", block_num, *metadata & ~ALLOCATED, metadata);
         s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
         metadata = &next_header->metadata;
         block_num++;

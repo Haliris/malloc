@@ -195,6 +195,7 @@ void    *realloc(void *ptr, size_t size)
                 return (NULL);
         };
         s_block_header *header = GET_HEADER_FROM_BLOCK(block);
+        ft_printf("Realloc: header set at %p, metadata: %d\n", header, header->metadata & ~ALLOCATED);
         int *metadata = &header->metadata;
         size_t block_size = *metadata & ~ALLOCATED;
         ft_printf("Realloc: Current block %p size: %d\n", header, *metadata & ~ALLOCATED);
@@ -204,7 +205,7 @@ void    *realloc(void *ptr, size_t size)
             s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
             *metadata |= ALLOCATED;
             next_header->metadata = block_size - size - sizeof(s_block_header);
-            ft_printf("Realloc: Size requested is SMALLER than existing block, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
+            ft_printf("Realloc: page: %p Size requested is SMALLER than existing block, SPLITTING THEN returning new pointer: %p, header: %p with size: %d\n", *page_iterator, ptr, metadata, *metadata & ~ALLOCATED);
    //         print_page_memory(*page_iterator);
             return (ptr);
         }
@@ -218,7 +219,7 @@ void    *realloc(void *ptr, size_t size)
             s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
             if ((next_header->metadata & ALLOCATED))
             {
-                ft_printf("Realloc: Next block %p is allocated\n", next_header);
+                ft_printf("Realloc: page: %p Next block %p this far from current header %d is allocated\n", *page_iterator, next_header, (char*)next_header - (char*)metadata);
                 break;
             }
             else
@@ -226,7 +227,7 @@ void    *realloc(void *ptr, size_t size)
                 (*page_iterator)->free_space -= *metadata;
                 if (next_header == (*page_iterator)->block_head)
                     (*page_iterator)->block_head = (s_block_header*) ((char*)metadata);
-                ft_printf("Realloc: Merging block %p and block %p, size %d and %d\n", metadata, next_header, *metadata & ~ALLOCATED, next_header->metadata & ~ALLOCATED);
+                ft_printf("Realloc: page: %p Merging block %p and block %p, size %d and %d\n", *page_iterator, metadata, next_header, *metadata & ~ALLOCATED, next_header->metadata & ~ALLOCATED);
                 *metadata = *metadata + next_header->metadata + sizeof(s_block_header);
                 block_size = *metadata & ~ALLOCATED;
                 next_header->metadata = 0;
@@ -235,7 +236,7 @@ void    *realloc(void *ptr, size_t size)
             }
             if (block_size == size)
             {
-                ft_printf("Realloc: Managed to extend block to fit EXACTLY new requested size, returning new pointer: %p, header: %p with size: %d\n", ptr, metadata, *metadata & ~ALLOCATED);
+                ft_printf("Realloc: page: %p Managed to extend block to fit EXACTLY new requested size, returning new pointer: %p, header: %p with size: %d\n", *page_iterator, ptr, metadata, *metadata & ~ALLOCATED);
                 return (ptr);
             }
             else if (block_size > size)
@@ -250,6 +251,7 @@ void    *realloc(void *ptr, size_t size)
             }
         }
         ft_printf("Realloc: Could not extend block, calling free and malloc\n");
+        print_page_memory(*page_iterator);
         free(ptr);
         return (malloc(size));
     }
@@ -513,6 +515,8 @@ int main(int ac, char **av)
     else
         ft_printf("All pages released!!!\n");
     void *ptr = malloc(100);
+    ft_printf("------\nPrinting page memory before problem reallocs!\n------\n");
+    print_page_memory(page_head);
     void *re_ptr = realloc(ptr, 42);
     (void)ptr;
     (void)re_ptr;
