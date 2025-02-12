@@ -39,9 +39,16 @@ void    coalesce_blocks(s_page* page);
 int     check_for_page_release(s_page *page);
 void    print_block_info(void *ptr);
 void    ft_print_bits(long nb);
-void    free(void *ptr);
-void    *allocate_memory(long long size, int *error_status);
-void    *malloc(size_t size);
 
+
+void    *malloc(size_t size);
+void    *allocate_memory(long long size, int *error_status);
+void    free(void *ptr);
+void    *realloc(void *ptr, size_t size);
+void    show_alloc_mem();
+
+
+void    remove_page_node(s_page *released_page);
+void    *search_address(void *ptr, s_page **page_iterator);
 #endif
 
