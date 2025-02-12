@@ -50,13 +50,11 @@ void    *realloc(void *ptr, size_t size)
             break;
         else
         {
-            (*page_iterator)->free_space -= *metadata;
             if (next_header == (*page_iterator)->block_head)
                 (*page_iterator)->block_head = (s_block_header*) ((char*)metadata);
             *metadata = *metadata + next_header->metadata + sizeof(s_block_header);
             block_size = *metadata & ~ALLOCATED;
             next_header->metadata = 0;
-            (*page_iterator)->free_space += *metadata;
         }
         if (block_size == size)
             return (ptr);

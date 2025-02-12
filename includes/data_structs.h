@@ -23,7 +23,6 @@ typedef struct t_page
     struct t_page*     next;
     s_block_header*           block_head;
     e_zone_type        type;
-    long long          free_space; // Have some way to 'preview' the page so that we do not always need to scan it??
 } s_page;
 
 

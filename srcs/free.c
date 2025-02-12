@@ -19,10 +19,8 @@ void    coalesce_blocks(s_page* page)
         {
             if (next_header == page->block_head)
                 page->block_head = (s_block_header*) ((char*)metadata);
-            page->free_space -= *metadata;
             *metadata = *metadata + next_header->metadata + sizeof(s_block_header);
             next_header->metadata = 0;
-            page->free_space += *metadata;
         }
         else
             metadata = &next_header->metadata;

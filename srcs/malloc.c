@@ -25,10 +25,10 @@ int     request_page(int type, long page_size)
             return (FATAL_ERROR);
         }
         page_head->type = type;
-        page_head->free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
+        size_t free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
         page_head->block_head = GET_FIRST_HEADER(page_head);
-        page_head->block_head->metadata = page_head->free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + sizeof(s_block_header) + page_head->free_space);
+        page_head->block_head->metadata = free_space;
+        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + sizeof(s_block_header) + free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
     }
@@ -47,11 +47,12 @@ int     request_page(int type, long page_size)
             return (FATAL_ERROR);
         }
         new_page->type = type;
-        new_page->free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
+
+        size_t free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
         new_page->block_head = GET_FIRST_HEADER(new_page);
-        new_page->block_head->metadata = new_page->free_space;
+        new_page->block_head->metadata = free_space;
         new_page->next = NULL;
-        s_block_header* page_footer = (s_block_header*)((char*)new_page + sizeof(s_page) + sizeof(s_block_header) + new_page->free_space);
+        s_block_header* page_footer = (s_block_header*)((char*)new_page + sizeof(s_page) + sizeof(s_block_header) + free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         s_page *page_iterator = page_head;
@@ -93,13 +94,6 @@ void*   allocate_memory(long long size, int *error_status)
 
     while (page_iterator)
     {
-//        if (page_iterator->free_space < (long long)size) // add check with largest free block as well
-//        {
-            //ft_printf("Malloc: Not enough space in page, skipping\n");
-//            page_iterator = page_iterator->next;
-//            continue;
-        //        
-//        }
         int *metadata = &page_iterator->block_head->metadata;
         while (!IS_PAGE_FOOTER(*metadata)) 
         {

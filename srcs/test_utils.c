@@ -53,7 +53,6 @@ void    print_page_list(s_page *page_head)
     {
         ft_printf("page_head: %p\n", iterator);
         ft_printf("type: %d\n", iterator->type);
-        ft_printf("free_space: %d\n", iterator->free_space);
         ft_printf("block_head: %p\n", iterator->block_head);
         ft_printf("block metadata: ");
         ft_print_bits(iterator->block_head->metadata);
@@ -72,7 +71,6 @@ void    print_full_heap(s_page *page_head)
     {
         ft_printf("page_head: %p\n", iterator);
         ft_printf("type: %d\n", iterator->type);
-        ft_printf("free_space: %d\n", iterator->free_space);
         ft_printf("block_head: %p\n", iterator->block_head);
         ft_printf("block metadata: ");
         ft_print_bits(iterator->block_head->metadata);
