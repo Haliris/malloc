@@ -1,46 +1,16 @@
 #include "../includes/malloc.h"
 extern s_page *page_head;
 
-void    *realloc(void *ptr, size_t size)
+void    downsize_block(int* metadata, size_t size, size_t block_size)
 {
-    s_page  **page_iterator = &page_head;
-    size_t  ptr_size = 0;
-    void    *payload = NULL;
+    *metadata = size;
+    s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
+    *metadata |= ALLOCATED;
+    next_header->metadata = block_size - size - sizeof(s_block_header);
+}
 
-    if (size == 0 && ptr)
-    {
-        free(ptr);
-        return (NULL);
-    }
-    if (size > LLONG_MAX - 7)
-        return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
-    if (size % 8 != 0)
-        size = ROUND_TO_8(size);
-    if (!ptr)
-    {
-        payload = malloc(size);
-        if (!payload)
-            return (NULL);
-    }
-    void *block = search_address(ptr, page_iterator);
-    if (!block)
-    {
-        void *payload = malloc(size);
-        if (!payload)
-            return (NULL);
-    };
-    s_block_header *header = GET_HEADER_FROM_BLOCK(block);
-    int *metadata = &header->metadata;
-    size_t block_size = *metadata & ~ALLOCATED;
-    ptr_size = block_size;
-    if ((long long)size < (*metadata & ~ALLOCATED))
-    {
-        *metadata = size;
-        s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
-        *metadata |= ALLOCATED;
-        next_header->metadata = block_size - size - sizeof(s_block_header);
-        return (ptr);
-    }
+int  extend_block(int *metadata, s_page **page_iterator, size_t block_size, size_t size)
+{
     while (!IS_PAGE_FOOTER(*metadata))
     {
         s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
@@ -55,17 +25,22 @@ void    *realloc(void *ptr, size_t size)
             next_header->metadata = 0;
         }
         if (block_size == size)
-            return (ptr);
+            return (SUCCESS);
         else if (block_size > size)
         {
             *metadata = size;
             next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
             *metadata |= ALLOCATED;
             next_header->metadata = block_size - size - sizeof(s_block_header);
-            return (ptr);
+            return (SUCCESS);
         }
     }
-    payload = malloc(size);
+    return (FAILURE);
+}
+
+void    *find_new_block(void *ptr, size_t size, size_t ptr_size)
+{
+    void *payload = malloc(size);
     if (!payload)
     {
         free(ptr);
@@ -74,4 +49,37 @@ void    *realloc(void *ptr, size_t size)
     payload = ft_memmove(payload, ptr, ptr_size);
     free(ptr);
     return (payload);
+}
+
+void    *realloc(void *ptr, size_t size)
+{
+    s_page  **page_iterator = &page_head;
+    size_t  ptr_size = 0;
+
+    if (size == 0 && ptr)
+    {
+        free(ptr);
+        return (NULL);
+    }
+    if (size > LLONG_MAX - 7)
+        return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
+    if (size % 8 != 0)
+        size = ROUND_TO_8(size);
+    if (!ptr)
+        return(malloc(size));
+    void *block = search_address(ptr, page_iterator);
+    if (!block)
+        return (malloc(size));
+    s_block_header *header = GET_HEADER_FROM_BLOCK(block);
+    int *metadata = &header->metadata;
+    size_t block_size = *metadata & ~ALLOCATED;
+    ptr_size = block_size;
+    if ((long long)size < (*metadata & ~ALLOCATED))
+    {
+        downsize_block(metadata, size, block_size);
+        return (ptr);
+    }
+    if (extend_block(metadata, page_iterator, block_size, size) == SUCCESS)
+        return (ptr);
+    return (find_new_block(ptr, size, ptr_size));
 };

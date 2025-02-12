@@ -9,6 +9,7 @@
 # include "data_structs.h"
 # include "../libft/libft.h"
 # define SUCCESS 0
+# define FAILURE 1
 # define FATAL_ERROR 1
 # define NO_GOOD_PAGE 2
 # define MAX_PAGES 1024

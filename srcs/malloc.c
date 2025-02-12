@@ -185,9 +185,7 @@ int main(int ac, char **av)
     luna = realloc(luna, 12);
     show_alloc_mem();
     luna = realloc(luna, 150000); //get Rlimit()
-    ft_printf("------HERE\n");
     show_alloc_mem();
-    ft_printf("------HERE\n");
     char *test = ft_itoa(123);
     for (size_t i = 0; i < strlen(test); i++)
         write(1, &test[i], 1);
