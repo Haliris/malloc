@@ -8,8 +8,8 @@
 typedef enum t_zone_type
 {
     TINY = 8,
-    SMALL = 16,
-    LARGE = 32
+    SMALL = 32,
+    LARGE
 } e_zone_type;
 
 typedef struct t_block_header
@@ -21,7 +21,7 @@ typedef struct t_block_header
 typedef struct t_page
 {
     struct t_page*     next;
-    s_block_header*           block_head;
+    s_block_header*    block_head;
     e_zone_type        type;
 } s_page;
 

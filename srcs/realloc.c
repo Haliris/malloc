@@ -41,10 +41,8 @@ void    *realloc(void *ptr, size_t size)
         next_header->metadata = block_size - size - sizeof(s_block_header);
         return (ptr);
     }
-    while (1)
+    while (!IS_PAGE_FOOTER(*metadata))
     {
-        if (IS_PAGE_FOOTER(*metadata))
-            break;
         s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
         if ((next_header->metadata & ALLOCATED))
             break;

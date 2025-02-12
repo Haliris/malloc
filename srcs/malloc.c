@@ -8,7 +8,7 @@
 
 s_page  *page_head;
 
-int     request_page(int type, long page_size)
+int     request_page(long long type, long page_size)
 {
     if (!page_head)
     {
@@ -24,6 +24,8 @@ int     request_page(int type, long page_size)
             write(2, "\n", 1);
             return (FATAL_ERROR);
         }
+        if (type > SMALL)
+            type = LARGE;
         page_head->type = type;
         size_t free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
         page_head->block_head = GET_FIRST_HEADER(page_head);
@@ -46,8 +48,9 @@ int     request_page(int type, long page_size)
             write(2, "\n", 1);
             return (FATAL_ERROR);
         }
+        if (type > SMALL)
+            type = LARGE;
         new_page->type = type;
-
         size_t free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
         new_page->block_head = GET_FIRST_HEADER(new_page);
         new_page->block_head->metadata = free_space;
@@ -63,9 +66,19 @@ int     request_page(int type, long page_size)
     return (SUCCESS);
 }
 
+long long get_page_type(long page_size, long requested_size)
+{
+    if (requested_size < page_size * TINY)
+        return TINY;
+    else if (requested_size >= page_size * TINY && requested_size < page_size * SMALL)
+        return SMALL;
+    else
+        return (requested_size);
+}
+
 int    init_pages(long* page_size, long requested_size)
 {
-    int type = 0;
+    long long type = 0;
     if (*page_size == 0)
     {
         #ifdef __APPLE__ // no osX at school??
@@ -79,9 +92,7 @@ int    init_pages(long* page_size, long requested_size)
             return (FATAL_ERROR);
         }
     }
-    type += IS_LARGE_TYPE(requested_size,(long) (*page_size - sizeof(s_page)));
-    type += IS_SMALL_TYPE(requested_size,(long) (*page_size - sizeof(s_page)));
-    type += IS_TINY_TYPE(requested_size,(long) (*page_size - sizeof(s_page)));
+    type = get_page_type(*page_size, requested_size);
     if (request_page(type, *page_size) == FATAL_ERROR)
         return (FATAL_ERROR);
     return (SUCCESS);
@@ -149,11 +160,7 @@ void    *malloc(size_t size)
     payload = allocate_memory(size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
-        print_full_heap(page_head);
-        int type = 0;
-        type += IS_LARGE_TYPE((long long)size, (long)(page_size - sizeof(s_page)));
-        type += IS_SMALL_TYPE((long long)size, (long)(page_size - sizeof(s_page)));
-        type += IS_TINY_TYPE((long long)size, (long)(page_size - sizeof(s_page)));
+        long long type = get_page_type(page_size, size);
         if (request_page(type, page_size) == FATAL_ERROR)
             return (NULL);
         error_status = 0;
@@ -172,33 +179,35 @@ int main(int ac, char **av)
     (void)av;
     char *luna;
     luna = malloc(14000);
-    ft_printf("Luna : %p\n");
+    show_alloc_mem();
     luna = malloc(12827);
-    ft_printf("Luna : %p\n");
+    show_alloc_mem();
     luna = realloc(luna, 12);
-    ft_printf("Luna : %p\n");
-    luna = realloc(luna, 130000); //get Rlimit()
-    ft_printf("Luna : %p\n");
+    show_alloc_mem();
+    luna = realloc(luna, 150000); //get Rlimit()
+    ft_printf("------HERE\n");
+    show_alloc_mem();
+    ft_printf("------HERE\n");
     char *test = ft_itoa(123);
     for (size_t i = 0; i < strlen(test); i++)
         write(1, &test[i], 1);
     write(1, "\n", 1);
+    show_alloc_mem();
     char *dup = ft_strdup("Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length ");
-    for (size_t i = 0; i < strlen(dup); i++)
-        write(1, &dup[i], 1);
-    write(1, "\n", 1);
+    show_alloc_mem();
     char **split = ft_split(dup, ' ');
+    show_alloc_mem();
     free(dup);
     free(test);
     int i = 0;
+    show_alloc_mem();
     while (split[i])
     {
-        ft_putstr_fd(split[i], 1);
-        write(1, "\n", 1);
         free(split[i]);
         i++;
     }
     free(split);
+    show_alloc_mem();
     void *ptr = malloc(100);
     show_alloc_mem();
     void *re_ptr = realloc(ptr, 42);

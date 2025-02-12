@@ -12,9 +12,6 @@
 # define FATAL_ERROR 1
 # define NO_GOOD_PAGE 2
 # define MAX_PAGES 1024
-# define IS_LARGE_TYPE(r_size, p_size) (LARGE * (r_size >= (LARGE * p_size)))
-# define IS_SMALL_TYPE(r_size, p_size) (SMALL * (((r_size >= (TINY * p_size)) * ((r_size < (LARGE * p_size))))))
-# define IS_TINY_TYPE(r_size, p_size) (TINY * (r_size < SMALL * p_size))
 # define ROUND_TO_8(x) ((x + 7) &(-8));
 
 # define IS_PAGE_FOOTER(metadata)  (((metadata & ~ALLOCATED) == 0) && (metadata & ALLOCATED))
@@ -33,7 +30,7 @@ typedef enum t_bool
 void    print_page_list(s_page *page_head);
 void    print_page_memory(s_page *page);
 void    print_full_heap(s_page *page_head);
-int     request_page(int type, long page_size);
+int     request_page(long long type, long page_size);
 int     init_pages(long* page_size, long requested_size);
 void    coalesce_blocks(s_page* page);
 int     check_for_page_release(s_page *page);
