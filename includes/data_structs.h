@@ -1,7 +1,9 @@
 #ifndef DATA_STRUCTS_H
 # define DATA_STRUCTS_H
+#include "malloc.h"
 # define ALLOCATED 1
-
+# include <pthread.h>
+# include <stddef.h>
 //Align memory to 8 so that the last 3 bits are always free to be written into. Need to mask them to get the size however
 //Need to setup headers and footers so that we can use then footers to go back through the list instead of being stuck going forward
 
@@ -25,5 +27,13 @@ typedef struct t_page
     e_zone_type        type;
 } s_page;
 
+typedef struct t_arena
+{
+    s_page          *page_head;
+    size_t          size;
+    pthread_mutex_t lock;
+    e_bool          initialized;
+    int             assigned_threads;
+} s_arena;
 
 #endif

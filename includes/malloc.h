@@ -6,6 +6,7 @@
 # include <sys/mman.h>
 # include <stdlib.h>
 # include <limits.h>
+# include <pthread.h>
 # include "data_structs.h"
 # include "../libft/libft.h"
 # define SUCCESS 0
@@ -22,6 +23,8 @@
 # define GET_NEXT_HEADER_FROM_BLOCK(ptr, metadata) ((s_block_header*)((char*)ptr + (metadata & ~ALLOCATED)))
 # define GET_NEXT_HEADER_FROM_HEADER(metadata) ((s_block_header*)((char*)metadata + ((*metadata & ~ALLOCATED) + sizeof(s_block_header))))
 
+# define MALLOC_ARENA_MAX 1024
+
 typedef enum t_bool
 {
     FALSE = 0,
@@ -31,8 +34,8 @@ typedef enum t_bool
 void    print_page_list(s_page *page_head);
 void    print_page_memory(s_page *page);
 void    print_full_heap(s_page *page_head);
-int     request_page(long long type, long page_size);
-int     init_pages(long* page_size, long requested_size);
+int     request_page(s_page *page_head, long long type, long page_size);
+int     init_pages(s_page *page_head, long* page_size, long requested_size);
 void    defragment_page(s_page* page);
 int     check_for_page_release(s_page *page);
 void    print_block_info(void *ptr);

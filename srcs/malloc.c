@@ -1,14 +1,23 @@
 // https://medium.com/a-42-journey/how-to-create-your-own-malloc-library-b86fedd39b96
 // https://my.eng.utah.edu/~cs4400/malloc.pdf
+// https://sourceware.org/glibc/wiki/MallocInternals
+// man mallopt
+// always check for arena_head different from NULL in free and realloc in case of shenanigans
 #include "../includes/malloc.h"
 #include "../includes/data_structs.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
-s_page  *page_head;
+// Check with trylock to assess the amount of thread collisions? Otherwise use wait_cond overloading but heh???
+// If thread collision is too high, create another arena
+// When a thread is allowed access into an arena, write into TLS the number of the arena node
+// When the thread calls back, access the correct arena using that number
+// Leaving arena in memory is fine, just gotta make sure the page_head ptr is handled correctly
 
-int     request_page(long long type, long page_size)
+s_arena arena_head[MALLOC_ARENA_MAX];
+
+int     request_page(s_page *page_head, long long type, long page_size)
 {
     if (!page_head)
     {
@@ -76,7 +85,7 @@ long long get_page_type(long page_size, long requested_size)
         return (requested_size);
 }
 
-int    init_pages(long* page_size, long requested_size)
+int    init_pages(s_page *page_head, long* page_size, long requested_size)
 {
     long long type = 0;
     if (*page_size == 0)
@@ -93,7 +102,7 @@ int    init_pages(long* page_size, long requested_size)
         }
     }
     type = get_page_type(*page_size, requested_size);
-    if (request_page(type, *page_size) == FATAL_ERROR)
+    if (request_page(page_head, type, *page_size) == FATAL_ERROR)
         return (FATAL_ERROR);
     return (SUCCESS);
 }
@@ -140,10 +149,48 @@ void*   allocate_memory(long long size, int *error_status)
     return (NULL);
 }
 
+int init_arena(s_arena *arena, long *page_size, long requested_size)
+{
+    if (pthread_mutex_init(&arena->lock, NULL) != 0)
+        return (FATAL_ERROR);
+    if (init_pages(arena_head->page_head, page_size, requested_size) == FATAL_ERROR)
+    {
+        pthread_mutex_destroy(&arena->lock);
+        return (FATAL_ERROR);
+    }
+    //arena_head->size =  //will need to reimplement free_space tracking per pages
+    arena->initialized = TRUE;
+    return (SUCCESS);
+}
+
+int    assign_arena(long *page_size, long requested_size)
+{
+    static __thread int assigned_arena = -1; // add check to initialize this value only if it was not previously set
+    int i = 0;
+
+    if (assigned_arena != -1)
+        return (SUCCESS);
+    while (i < MALLOC_ARENA_MAX && arena_head[i].assigned_threads > 5)
+        i++;
+    assigned_arena = i;
+//    int ret = pthread_mutex_lock(&lock);
+//    if (ret != 0)
+//    {
+//        if(ret == EINVAL){
+//            pthread_mutex_init(&lock, NULL);
+//        } else {
+//          /* other error */
+//        }
+//    }
+    if (arena_head[i].initialized == FALSE) // race condition here, need to already have a lock ready, probably use the unused global lock??
+        return (init_arena(&arena_head[i], page_size, requested_size));
+    return (SUCCESS);
+}
+
 void    *malloc(size_t size)
 {
     static long page_size;
-    void       *payload;
+    void        *payload;
     int         error_status = 0;
 
     if (size == 0)
@@ -152,10 +199,15 @@ void    *malloc(size_t size)
         return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
     if (size % 8 != 0)
         size = ROUND_TO_8(size);
-    if (page_head == NULL)
+    if (arena_head[0].initialized == FALSE)
     {
-        if (init_pages(&page_size, size) == FATAL_ERROR)
-            return (NULL); //wtf do we do when fatal???
+        if (init_arena(&arena_head[0], &page_size, size) == FATAL_ERROR)
+            return (NULL);
+    }
+    else 
+    {
+        if (assign_arena(&page_size, size) == FATAL_ERROR)
+            return (NULL); // Not correct, look into what needs to be done
     }
     payload = allocate_memory(size, &error_status);
     if (error_status == NO_GOOD_PAGE)
