@@ -2,7 +2,7 @@
 
 extern s_page *page_head;
 
-void    coalesce_blocks(s_page* page)
+void    defragment_page(s_page* page)
 {
     s_block_header *header = GET_FIRST_HEADER(page);
     int *metadata = &header->metadata;
@@ -57,7 +57,7 @@ void    free(void *ptr)
     {
         *metadata ^= ALLOCATED;
         ft_memset(ptr, 0, *metadata);
-        coalesce_blocks(*page_iterator); 
+        defragment_page(*page_iterator); 
         if (check_for_page_release(*page_iterator) == TRUE)
         {
             header = GET_FIRST_HEADER(*page_iterator);

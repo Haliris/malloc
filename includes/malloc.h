@@ -33,7 +33,7 @@ void    print_page_memory(s_page *page);
 void    print_full_heap(s_page *page_head);
 int     request_page(long long type, long page_size);
 int     init_pages(long* page_size, long requested_size);
-void    coalesce_blocks(s_page* page);
+void    defragment_page(s_page* page);
 int     check_for_page_release(s_page *page);
 void    print_block_info(void *ptr);
 void    ft_print_bits(long nb);
