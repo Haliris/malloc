@@ -69,6 +69,7 @@ int     request_page(s_page **page_head, long long type, long page_size)
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         s_page *page_iterator = *page_head; // bad??
+        ft_printf("Request page: Mapped new page %p with block_head at %p and metadata %p and page_footer %p\n", new_page, (new_page)->block_head, (new_page)->block_head->metadata, page_footer);
         while (page_iterator->next != NULL)
             page_iterator = page_iterator->next;
         page_iterator->next = new_page; // bad too??
@@ -243,7 +244,9 @@ int main(int ac, char **av)
         exit(1);
     }
     (void)av;
-    void *ptr = malloc(100);
+    void *ptr;
+    for (int i = 0; i < 1000; i++)
+        ptr = malloc(100);
     (void)ptr;
     show_alloc_mem();
     return (0);
