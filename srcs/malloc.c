@@ -245,6 +245,7 @@ int main(int ac, char **av)
     (void)av;
     void *ptr = malloc(100);
     (void)ptr;
+    show_alloc_mem();
     return (0);
 }
 
