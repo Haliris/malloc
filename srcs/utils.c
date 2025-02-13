@@ -1,12 +1,12 @@
 #include "../includes/malloc.h"
 
-extern s_page *page_head;
+extern s_arena arena_head[MALLOC_ARENA_MAX];
 
 void    show_alloc_mem()
 {
     size_t  total_bytes = 0;
-    s_page  *page_iterator = page_head;
-    while (page_iterator)
+    s_page  *page_iterator = arena_head[0].page_head;
+    while (page_iterator) // fix loop by iterating over arena head using define and i
     {
         switch (page_iterator->type)
         {
@@ -40,9 +40,9 @@ void    show_alloc_mem()
     ft_putendl_fd(" bytes", STDOUT_FILENO);
 }
 
-void    remove_page_node(s_page *released_page)
+void    remove_page_node(s_page **page, s_page *released_page)
 {
-    s_page *page_iterator = page_head;
+    s_page *page_iterator = *page;
 
     if (!released_page)
         return;

@@ -34,8 +34,8 @@ typedef enum t_bool
 void    print_page_list(s_page *page_head);
 void    print_page_memory(s_page *page);
 void    print_full_heap(s_page *page_head);
-int     request_page(s_page *page_head, long long type, long page_size);
-int     init_pages(s_page *page_head, long* page_size, long requested_size);
+int     request_page(s_page **page_head, long long type, long page_size);
+int     init_pages(s_page **page_head, long* page_size, long requested_size);
 void    defragment_page(s_page* page);
 int     check_for_page_release(s_page *page);
 void    print_block_info(void *ptr);
@@ -43,13 +43,13 @@ void    ft_print_bits(long nb);
 
 
 void    *malloc(size_t size);
-void    *allocate_memory(long long size, int *error_status);
+void    *allocate_memory(s_page **page_head, long long size, int *error_status);
 void    free(void *ptr);
 void    *realloc(void *ptr, size_t size);
 void    show_alloc_mem();
 
 
-void    remove_page_node(s_page *released_page);
+void    remove_page_node(s_page **page, s_page *released_page);
 void    *search_address(void *ptr, s_page **page_iterator);
 #endif
 

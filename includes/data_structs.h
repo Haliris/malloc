@@ -1,6 +1,6 @@
 #ifndef DATA_STRUCTS_H
 # define DATA_STRUCTS_H
-#include "malloc.h"
+# include "../includes/malloc.h"
 # define ALLOCATED 1
 # include <pthread.h>
 # include <stddef.h>
@@ -32,7 +32,7 @@ typedef struct t_arena
     s_page          *page_head;
     size_t          size;
     pthread_mutex_t lock;
-    e_bool          initialized;
+    int             initialized;
     int             assigned_threads;
 } s_arena;
 

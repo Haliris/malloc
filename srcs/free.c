@@ -1,6 +1,6 @@
 #include "../includes/malloc.h"
 
-extern s_page *page_head;
+extern s_arena arena_head[MALLOC_ARENA_MAX];
 
 void    defragment_page(s_page* page)
 {
@@ -43,7 +43,7 @@ int    check_for_page_release(s_page *page)
 
 void    free(void *ptr)
 {
-    s_page **page_iterator = &page_head;
+    s_page **page_iterator = &arena_head[0].page_head; // Make function to find pages in arena
     if (ptr == NULL)
         return;
     void *block = search_address(ptr, page_iterator);
@@ -61,7 +61,7 @@ void    free(void *ptr)
         if (check_for_page_release(*page_iterator) == TRUE)
         {
             header = GET_FIRST_HEADER(*page_iterator);
-            remove_page_node(*page_iterator);
+            remove_page_node(&arena_head[0].page_head, *page_iterator);
             munmap(*page_iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
             *page_iterator = NULL;
         }

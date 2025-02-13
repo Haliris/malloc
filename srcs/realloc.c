@@ -1,5 +1,6 @@
 #include "../includes/malloc.h"
-extern s_page *page_head;
+
+extern s_arena arena_head[MALLOC_ARENA_MAX];
 
 void    downsize_block(int* metadata, size_t size, size_t block_size)
 {
@@ -53,7 +54,7 @@ void    *find_new_block(void *ptr, size_t size, size_t ptr_size)
 
 void    *realloc(void *ptr, size_t size)
 {
-    s_page  **page_iterator = &page_head;
+    s_page  **page_iterator = &arena_head[0].page_head;
     size_t  ptr_size = 0;
 
     if (size == 0 && ptr)

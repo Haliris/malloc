@@ -17,16 +17,16 @@
 
 s_arena arena_head[MALLOC_ARENA_MAX];
 
-int     request_page(s_page *page_head, long long type, long page_size)
+int     request_page(s_page **page_head, long long type, long page_size)
 {
-    if (!page_head)
+    if (!*page_head)
     {
-        page_head = (void*)mmap(NULL,
+        *page_head = (void*)mmap(NULL,
                                 (page_size * type) + sizeof(s_page) + 2 * sizeof(s_block_header),
                                 PROT_READ | PROT_WRITE,
                                 MAP_ANONYMOUS | MAP_PRIVATE,
                                 -1, 0);
-        if (page_head == MAP_FAILED)
+        if (*page_head == MAP_FAILED)
         {
             ft_putstr_fd("Fatal error: ", STDERR_FILENO);
             ft_putnbr_fd(errno, STDERR_FILENO);
@@ -35,13 +35,14 @@ int     request_page(s_page *page_head, long long type, long page_size)
         }
         if (type > SMALL)
             type = LARGE;
-        page_head->type = type;
+        (*page_head)->type = type;
         size_t free_space = (page_size * type) - sizeof(s_page) - 2 * sizeof(s_block_header);
-        page_head->block_head = GET_FIRST_HEADER(page_head);
-        page_head->block_head->metadata = free_space;
-        s_block_header* page_footer = (s_block_header*)((char*)page_head + sizeof(s_page) + sizeof(s_block_header) + free_space);
+        (*page_head)->block_head = GET_FIRST_HEADER(*page_head);
+        (*page_head)->block_head->metadata = free_space;
+        s_block_header* page_footer = (s_block_header*)((char*)(*page_head) + sizeof(s_page) + sizeof(s_block_header) + free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
+        ft_printf("Request page: Mapped new page %p with block_head at %p and metadata %p and page_footer %p\n", *page_head, (*page_head)->block_head, (*page_head)->block_head->metadata, page_footer);
     }
     else
     {
@@ -67,10 +68,10 @@ int     request_page(s_page *page_head, long long type, long page_size)
         s_block_header* page_footer = (s_block_header*)((char*)new_page + sizeof(s_page) + sizeof(s_block_header) + free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
-        s_page *page_iterator = page_head;
+        s_page *page_iterator = *page_head; // bad??
         while (page_iterator->next != NULL)
             page_iterator = page_iterator->next;
-        page_iterator->next = new_page;
+        page_iterator->next = new_page; // bad too??
     }
     return (SUCCESS);
 }
@@ -85,7 +86,7 @@ long long get_page_type(long page_size, long requested_size)
         return (requested_size);
 }
 
-int    init_pages(s_page *page_head, long* page_size, long requested_size)
+int    init_pages(s_page **page_head, long* page_size, long requested_size)
 {
     long long type = 0;
     if (*page_size == 0)
@@ -107,9 +108,9 @@ int    init_pages(s_page *page_head, long* page_size, long requested_size)
     return (SUCCESS);
 }
 
-void*   allocate_memory(long long size, int *error_status)
+void   *allocate_memory(s_page **page_head, long long size, int *error_status)
 {
-    s_page *page_iterator = page_head;
+    s_page *page_iterator = *page_head;
     void   *ptr;
 
     while (page_iterator)
@@ -132,7 +133,7 @@ void*   allocate_memory(long long size, int *error_status)
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
-                    page_head->block_head = next_header;
+                    (*page_head)->block_head = next_header; // check that this writes correctly into the page
                     return (ptr);
                 }
                 if (size < original_size)
@@ -151,9 +152,7 @@ void*   allocate_memory(long long size, int *error_status)
 
 int init_arena(s_arena *arena, long *page_size, long requested_size)
 {
-    if (pthread_mutex_init(&arena->lock, NULL) != 0)
-        return (FATAL_ERROR);
-    if (init_pages(arena_head->page_head, page_size, requested_size) == FATAL_ERROR)
+    if (init_pages(&arena_head->page_head, page_size, requested_size) == FATAL_ERROR)
     {
         pthread_mutex_destroy(&arena->lock);
         return (FATAL_ERROR);
@@ -163,35 +162,42 @@ int init_arena(s_arena *arena, long *page_size, long requested_size)
     return (SUCCESS);
 }
 
-int    assign_arena(long *page_size, long requested_size)
+int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
 {
-    static __thread int assigned_arena = -1; // add check to initialize this value only if it was not previously set
     int i = 0;
 
-    if (assigned_arena != -1)
-        return (SUCCESS);
-    while (i < MALLOC_ARENA_MAX && arena_head[i].assigned_threads > 5)
-        i++;
-    assigned_arena = i;
-//    int ret = pthread_mutex_lock(&lock);
-//    if (ret != 0)
-//    {
-//        if(ret == EINVAL){
-//            pthread_mutex_init(&lock, NULL);
-//        } else {
-//          /* other error */
-//        }
-//    }
-    if (arena_head[i].initialized == FALSE) // race condition here, need to already have a lock ready, probably use the unused global lock??
+    while (i < MALLOC_ARENA_MAX)
+    {
+        int ret = pthread_mutex_lock(&arena_head[i].lock);
+        if (ret != 0)
+        {
+            if(ret == EINVAL)
+            {
+                if (pthread_mutex_init(&arena_head[i].lock, NULL) != 0)
+                    return (FATAL_ERROR);
+            } 
+        }
+        if(arena_head[i].assigned_threads > 5)
+        {
+            pthread_mutex_unlock(&arena_head[i].lock);
+            i++;
+        }
+        else
+            break;
+    }
+    *assigned_arena = i;
+    if (arena_head[i].initialized == FALSE)
         return (init_arena(&arena_head[i], page_size, requested_size));
+    pthread_mutex_unlock(&arena_head[i].lock);
     return (SUCCESS);
 }
 
 void    *malloc(size_t size)
 {
-    static long page_size;
-    void        *payload;
-    int         error_status = 0;
+    static          long page_size;
+    static __thread int assigned_arena = -1;
+    void            *payload;
+    int             error_status = 0;
 
     if (size == 0)
         return (NULL);
@@ -201,22 +207,24 @@ void    *malloc(size_t size)
         size = ROUND_TO_8(size);
     if (arena_head[0].initialized == FALSE)
     {
+        if (pthread_mutex_init(&arena_head[0].lock, NULL) != 0)
+            return (NULL);
         if (init_arena(&arena_head[0], &page_size, size) == FATAL_ERROR)
             return (NULL);
     }
-    else 
+    else if (assigned_arena == -1)
     {
-        if (assign_arena(&page_size, size) == FATAL_ERROR)
+        if (assign_arena(&assigned_arena, &page_size, size) == FATAL_ERROR)
             return (NULL); // Not correct, look into what needs to be done
     }
-    payload = allocate_memory(size, &error_status);
+    payload = allocate_memory(&arena_head[assigned_arena].page_head, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
         long long type = get_page_type(page_size, size);
-        if (request_page(type, page_size) == FATAL_ERROR)
+        if (request_page(&arena_head[assigned_arena].page_head, type, page_size) == FATAL_ERROR)
             return (NULL);
         error_status = 0;
-        payload = allocate_memory(size, &error_status);
+        payload = allocate_memory(&arena_head[assigned_arena].page_head, size, &error_status);
     }
     return (payload);
 };
@@ -229,42 +237,8 @@ int main(int ac, char **av)
         exit(1);
     }
     (void)av;
-    char *luna;
-    luna = malloc(14000);
-    show_alloc_mem();
-    luna = malloc(12827);
-    show_alloc_mem();
-    luna = realloc(luna, 12);
-    show_alloc_mem();
-    luna = realloc(luna, 150000); //get Rlimit()
-    show_alloc_mem();
-    char *test = ft_itoa(123);
-    for (size_t i = 0; i < strlen(test); i++)
-        write(1, &test[i], 1);
-    write(1, "\n", 1);
-    show_alloc_mem();
-    char *dup = ft_strdup("Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length Since words vary in length ");
-    show_alloc_mem();
-    char **split = ft_split(dup, ' ');
-    show_alloc_mem();
-    free(dup);
-    free(test);
-    int i = 0;
-    show_alloc_mem();
-    while (split[i])
-    {
-        free(split[i]);
-        i++;
-    }
-    free(split);
-    show_alloc_mem();
     void *ptr = malloc(100);
-    show_alloc_mem();
-    void *re_ptr = realloc(ptr, 42);
     (void)ptr;
-    (void)re_ptr;
-    void *big_ass_ptr = realloc(re_ptr, 42000);
-    free(big_ass_ptr);
     return (0);
 }
 
