@@ -108,11 +108,16 @@ int    init_pages(s_page **page_head, long* page_size, long requested_size)
     return (SUCCESS);
 }
 
-void   *allocate_memory(s_page **page_head, long long size, int *error_status)
+void   *allocate_memory(int assigned_arena, long long size, int *error_status)
 {
-    s_page *page_iterator = *page_head;
+    s_page *page_iterator = arena_head[assigned_arena].page_head;
     void   *ptr;
 
+    if (!page_iterator)
+    {
+        *error_status = NO_GOOD_PAGE;
+        return (NULL);
+    }
     while (page_iterator)
     {
         int *metadata = &page_iterator->block_head->metadata;
@@ -133,7 +138,7 @@ void   *allocate_memory(s_page **page_head, long long size, int *error_status)
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
-                    (*page_head)->block_head = next_header; // check that this writes correctly into the page
+                    page_iterator->block_head = next_header; // check that this writes correctly into the page
                     return (ptr);
                 }
                 if (size < original_size)
@@ -211,20 +216,21 @@ void    *malloc(size_t size)
             return (NULL);
         if (init_arena(&arena_head[0], &page_size, size) == FATAL_ERROR)
             return (NULL);
+        assigned_arena = 0;
     }
     else if (assigned_arena == -1)
     {
         if (assign_arena(&assigned_arena, &page_size, size) == FATAL_ERROR)
             return (NULL); // Not correct, look into what needs to be done
     }
-    payload = allocate_memory(&arena_head[assigned_arena].page_head, size, &error_status);
+    payload = allocate_memory(assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
         long long type = get_page_type(page_size, size);
         if (request_page(&arena_head[assigned_arena].page_head, type, page_size) == FATAL_ERROR)
             return (NULL);
         error_status = 0;
-        payload = allocate_memory(&arena_head[assigned_arena].page_head, size, &error_status);
+        payload = allocate_memory(assigned_arena, size, &error_status);
     }
     return (payload);
 };

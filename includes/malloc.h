@@ -43,7 +43,7 @@ void    ft_print_bits(long nb);
 
 
 void    *malloc(size_t size);
-void    *allocate_memory(s_page **page_head, long long size, int *error_status);
+void    *allocate_memory(int assigned_arena, long long size, int *error_status);
 void    free(void *ptr);
 void    *realloc(void *ptr, size_t size);
 void    show_alloc_mem();
