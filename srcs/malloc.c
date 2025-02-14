@@ -151,7 +151,6 @@ void   *allocate_memory(int assigned_arena, long long size, int *error_status)
 
 int init_arena(s_arena *arena, long *page_size, long requested_size)
 {
-    pthread_mutex_lock(&arena->lock);
     if (init_pages(&arena->page_head, page_size, requested_size) == FATAL_ERROR)
     {
         pthread_mutex_unlock(&arena->lock);
@@ -177,7 +176,9 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
             {
                 if (pthread_mutex_init(&arena_head[i].lock, NULL) != 0)
                     return (FATAL_ERROR);
+                pthread_mutex_lock(&arena_head[i].lock);
             } 
+            //else return error and cry
         }
         if(arena_head[i].assigned_threads > 5)
         {
@@ -190,6 +191,7 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
     *assigned_arena = i;
     if (arena_head[i].initialized == FALSE)
         return (init_arena(&arena_head[i], page_size, requested_size));
+    arena_head[i].assigned_threads++;
     pthread_mutex_unlock(&arena_head[i].lock);
     return (SUCCESS);
 }
@@ -207,22 +209,13 @@ void    *malloc(size_t size)
         return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
     if (size % 8 != 0)
         size = ROUND_TO_8(size);
-    if (arena_head[0].initialized == FALSE)
+    if (*assigned_arena == -1)
     {
-        ft_printf("Initializing arena_head[0]\n");
-        if (pthread_mutex_init(&arena_head[0].lock, NULL) != 0)
-            return (NULL);
-        if (init_arena(&arena_head[0], &page_size, size) == FATAL_ERROR)
-            return (NULL);
-        *assigned_arena = 0;
-    }
-    else if (*assigned_arena == -1)
-    {
-        ft_printf("Assigning arena\n");
         if (assign_arena(assigned_arena, &page_size, size) == FATAL_ERROR)
             return (NULL); // Not correct, look into what needs to be done
     }
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
+    ft_printf("Malloc: Thread assigned arena %d trying to allocate memory\n", *assigned_arena);
     payload = allocate_memory(*assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
@@ -241,7 +234,7 @@ void    *malloc(size_t size)
 
 #include <assert.h>
 
-#define NUM_THREADS 1
+#define NUM_THREADS 5
 #define NUM_ALLOCS  10
 
 pthread_mutex_t print_stick;
