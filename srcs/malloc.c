@@ -2,18 +2,11 @@
 // https://my.eng.utah.edu/~cs4400/malloc.pdf
 // https://sourceware.org/glibc/wiki/MallocInternals
 // man mallopt
-// always check for arena_head different from NULL in free and realloc in case of shenanigans
 #include "../includes/malloc.h"
 #include "../includes/data_structs.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-
-// Check with trylock to assess the amount of thread collisions? Otherwise use wait_cond overloading but heh???
-// If thread collision is too high, create another arena
-// When a thread is allowed access into an arena, write into TLS the number of the arena node
-// When the thread calls back, access the correct arena using that number
-// Leaving arena in memory is fine, just gotta make sure the page_head ptr is handled correctly
 
 s_arena arena_head[MALLOC_ARENA_MAX];
 
@@ -226,15 +219,17 @@ void    *malloc(size_t size)
     }
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
     payload = allocate_memory(*assigned_arena, size, &error_status);
+    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     if (error_status == NO_GOOD_PAGE)
     {
         long long type = get_page_type(page_size, size);
         if (request_page(&arena_head[*assigned_arena].page_head, type, page_size) == FATAL_ERROR)
             return (NULL);
         error_status = 0;
+        pthread_mutex_lock(&arena_head[*assigned_arena].lock);
         payload = allocate_memory(*assigned_arena, size, &error_status);
+        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     }
-    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     return (payload);
 };
 
@@ -255,7 +250,7 @@ int main(int ac, char **av)
     show_alloc_mem();
     void *realloc_ptr = malloc(8);
     show_alloc_mem();
-    realloc_ptr = realloc(realloc_ptr, 16);
+    realloc_ptr = realloc(realloc_ptr, 43000);
     show_alloc_mem();
     free(realloc_ptr);
     show_alloc_mem();

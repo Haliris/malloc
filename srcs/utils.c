@@ -14,6 +14,7 @@ void    show_alloc_mem()
     size_t  total_bytes = 0;
     for (int i = 0; i < MALLOC_ARENA_MAX && arena_head[i].initialized; i++)
     {
+        pthread_mutex_lock(&arena_head[i].lock);
         s_page  *page_iterator = arena_head[i].page_head;
         while (page_iterator) // fix loop by iterating over arena head using define and i
         {
@@ -44,6 +45,7 @@ void    show_alloc_mem()
             }
             page_iterator = page_iterator->next;
         }
+        pthread_mutex_unlock(&arena_head[i].lock);
     }
     ft_printf("Total: ");
     ft_putnbr_fd(total_bytes, STDOUT_FILENO);
@@ -56,8 +58,14 @@ void    remove_page_node(int assigned_arena, s_page *released_page)
 
     if (!released_page)
         return;
-    if (page_iterator == released_page) // check that this shit works please
-        page_iterator = NULL;
+    if (page_iterator == released_page)
+    {
+        if (page_iterator->next)
+            page_iterator = page_iterator->next;
+        else
+            page_iterator = NULL;
+        return;
+    }
     while (page_iterator)
     {
         if (page_iterator->next && page_iterator->next == released_page)
