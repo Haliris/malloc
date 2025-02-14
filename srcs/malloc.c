@@ -154,6 +154,7 @@ int init_arena(s_arena *arena, long *page_size, long requested_size)
     pthread_mutex_lock(&arena->lock);
     if (init_pages(&arena->page_head, page_size, requested_size) == FATAL_ERROR)
     {
+        pthread_mutex_unlock(&arena->lock);
         pthread_mutex_destroy(&arena->lock);
         return (FATAL_ERROR);
     }
@@ -208,6 +209,7 @@ void    *malloc(size_t size)
         size = ROUND_TO_8(size);
     if (arena_head[0].initialized == FALSE)
     {
+        ft_printf("Initializing arena_head[0]\n");
         if (pthread_mutex_init(&arena_head[0].lock, NULL) != 0)
             return (NULL);
         if (init_arena(&arena_head[0], &page_size, size) == FATAL_ERROR)
@@ -216,28 +218,30 @@ void    *malloc(size_t size)
     }
     else if (*assigned_arena == -1)
     {
+        ft_printf("Assigning arena\n");
         if (assign_arena(assigned_arena, &page_size, size) == FATAL_ERROR)
             return (NULL); // Not correct, look into what needs to be done
     }
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
     payload = allocate_memory(*assigned_arena, size, &error_status);
-    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     if (error_status == NO_GOOD_PAGE)
     {
         long long type = get_page_type(page_size, size);
-        pthread_mutex_lock(&arena_head[*assigned_arena].lock);
         if (request_page(&arena_head[*assigned_arena].page_head, type, page_size) == FATAL_ERROR)
+        {
+            pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
             return (NULL);
+        }
         error_status = 0;
         payload = allocate_memory(*assigned_arena, size, &error_status);
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     }
+    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     return (payload);
 };
 
 #include <assert.h>
 
-#define NUM_THREADS 10
+#define NUM_THREADS 1
 #define NUM_ALLOCS  10
 
 pthread_mutex_t print_stick;
@@ -257,21 +261,21 @@ void *thread_func(void *arg) {
     }
     
     // Reallocate memory
-    //for (int i = 0; i < NUM_ALLOCS; i++) {
-    //    pthread_mutex_lock(&print_stick);
-    //    ft_printf("Doing reallocations!\n");
-    //    pthread_mutex_unlock(&print_stick);
-    //    ptrs[i] = realloc(ptrs[i], 128);
-    //    assert(ptrs[i] != NULL);
-    //}
+    for (int i = 0; i < NUM_ALLOCS; i++) {
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Doing reallocations!\n");
+        pthread_mutex_unlock(&print_stick);
+        ptrs[i] = realloc(ptrs[i], 128);
+        assert(ptrs[i] != NULL);
+    }
     
     // Free memory
-    //for (int i = 0; i < NUM_ALLOCS; i++) {
-    //    pthread_mutex_lock(&print_stick);
-    //    ft_printf("Doing frees!\n");
-    //    pthread_mutex_unlock(&print_stick);
-    //    free(ptrs[i]);
-    //}
+    for (int i = 0; i < NUM_ALLOCS; i++) {
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Doing frees!\n");
+        pthread_mutex_unlock(&print_stick);
+        free(ptrs[i]);
+    }
     
     pthread_mutex_lock(&print_stick);
     ft_printf("Thread exiting#\n");

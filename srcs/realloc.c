@@ -98,6 +98,7 @@ void    *realloc(void *ptr, size_t size)
         pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return (ptr);
     }
+    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     void *payload = malloc(size);
     if (!payload)
     {
