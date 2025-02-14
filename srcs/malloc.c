@@ -11,9 +11,11 @@
 s_arena arena_head[MALLOC_ARENA_MAX];
 
 pthread_mutex_t print_stick;
+pthread_mutex_t page_mutex;
 
 int     request_page(s_page **page_head, long long type, long page_size)
 {
+    pthread_mutex_lock(&page_mutex);
     if (!*page_head)
     {
         *page_head = (void*)mmap(NULL,
@@ -35,12 +37,8 @@ int     request_page(s_page **page_head, long long type, long page_size)
         (*page_head)->block_head = GET_FIRST_HEADER(*page_head);
         (*page_head)->block_head->metadata = free_space;
         s_block_header* page_footer = (s_block_header*)((char*)(*page_head) + sizeof(s_page) + sizeof(s_block_header) + free_space);
-        pthread_mutex_lock(&print_stick);
-        ft_printf("Request_page: Got memory zone from kernel: %p\n", *page_head);
-        pthread_mutex_unlock(&print_stick);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
-//        ft_printf("Request page: Mapped new page %p with block_head at %p and metadata %p and page_footer %p\n", *page_head, (*page_head)->block_head, (*page_head)->block_head->metadata, page_footer);
     }
     else
     {
@@ -67,14 +65,11 @@ int     request_page(s_page **page_head, long long type, long page_size)
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         s_page *page_iterator = *page_head; // bad??
-        pthread_mutex_lock(&print_stick);
-        ft_printf("Request_page: Got memory zone from kernel: %p\n", *page_head);
-        pthread_mutex_unlock(&print_stick);
-//        ft_printf("Request page: Mapped new page %p with block_head at %p and metadata %p and page_footer %p\n", new_page, (new_page)->block_head, (new_page)->block_head->metadata, page_footer);
         while (page_iterator->next != NULL)
             page_iterator = page_iterator->next;
         page_iterator->next = new_page; // bad too??
     }
+    pthread_mutex_unlock(&page_mutex);
     return (SUCCESS);
 }
 
@@ -247,8 +242,8 @@ void    *malloc(size_t size)
 
 #include <assert.h>
 
-#define NUM_THREADS 5
-#define NUM_ALLOCS  10
+#define NUM_THREADS 200
+#define NUM_ALLOCS  1000
 
 int thread_nb = 10;
 
@@ -294,6 +289,7 @@ int main() {
     
     // Spawn threads
     pthread_mutex_init(&print_stick, NULL);
+    pthread_mutex_init(&page_mutex, NULL);
     for (int i = 0; i < NUM_THREADS; i++) {
         assert(pthread_create(&threads[i], NULL, thread_func, NULL) == 0);
     }
@@ -303,6 +299,7 @@ int main() {
         pthread_join(threads[i], NULL);
     }
     pthread_mutex_destroy(&print_stick);
+    pthread_mutex_destroy(&page_mutex);
     printf("Thread-safe malloc test passed!\n");
     return 0;
 }
