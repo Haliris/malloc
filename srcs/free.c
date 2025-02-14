@@ -1,6 +1,7 @@
 #include "../includes/malloc.h"
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
+extern pthread_mutex_t print_stick;
 
 void    defragment_page(s_page* page)
 {
@@ -46,7 +47,14 @@ void    reset_arena(s_arena *arena)
     arena->initialized = 0;
     arena->assigned_threads = 0;
     pthread_mutex_unlock(&arena->lock);
-    pthread_mutex_destroy(&arena->lock);
+    if (pthread_mutex_trylock(&arena->lock) == 0)
+    {
+        ft_printf("reset_arena: Arena mutex acquired\n");
+        pthread_mutex_unlock(&arena->lock);
+        pthread_mutex_destroy(&arena->lock);
+        return;
+    }
+    ft_printf("reset_arena: Not the arena mutex owner!\n");
 }
 
 void    free(void *ptr)
@@ -85,7 +93,11 @@ void    free(void *ptr)
             page_to_remove = NULL; // Likely does not write into page_head correctly
             if (!arena_head[*assigned_arena].page_head)
             {
-                reset_arena(&arena_head[*assigned_arena]);
+                pthread_mutex_lock(&print_stick);
+                ft_printf("Resetting arena\n");
+                pthread_mutex_unlock(&print_stick);
+        //        reset_arena(&arena_head[*assigned_arena]);
+                pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
                 return;
             }
         }
