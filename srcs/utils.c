@@ -1,6 +1,7 @@
 #include "../includes/malloc.h"
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
+extern pthread_mutex_t print_stick;
 
 int *get_assigned_arena(void)
 {
@@ -83,6 +84,8 @@ s_page  *remove_page_node(int assigned_arena, s_page *released_page)
 
 void    *search_address(void *ptr, s_page **page_iterator)
 {
+    if (!page_iterator || !*page_iterator)
+        return (NULL);
     while (*page_iterator)
     {
         s_block_header *header = GET_FIRST_HEADER(*page_iterator);
@@ -91,7 +94,7 @@ void    *search_address(void *ptr, s_page **page_iterator)
         {
             void *block = GET_BLOCK_PTR(metadata);
             if (block == ptr)
-                return block;
+                return (block);
             else
             {
                 s_block_header* next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);

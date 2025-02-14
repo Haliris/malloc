@@ -10,6 +10,8 @@
 
 s_arena arena_head[MALLOC_ARENA_MAX];
 
+pthread_mutex_t print_stick;
+
 int     request_page(s_page **page_head, long long type, long page_size)
 {
     if (!*page_head)
@@ -33,6 +35,9 @@ int     request_page(s_page **page_head, long long type, long page_size)
         (*page_head)->block_head = GET_FIRST_HEADER(*page_head);
         (*page_head)->block_head->metadata = free_space;
         s_block_header* page_footer = (s_block_header*)((char*)(*page_head) + sizeof(s_page) + sizeof(s_block_header) + free_space);
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Request_page: Got memory zone from kernel: %p\n", *page_head);
+        pthread_mutex_unlock(&print_stick);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
 //        ft_printf("Request page: Mapped new page %p with block_head at %p and metadata %p and page_footer %p\n", *page_head, (*page_head)->block_head, (*page_head)->block_head->metadata, page_footer);
@@ -62,6 +67,9 @@ int     request_page(s_page **page_head, long long type, long page_size)
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
         s_page *page_iterator = *page_head; // bad??
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Request_page: Got memory zone from kernel: %p\n", *page_head);
+        pthread_mutex_unlock(&print_stick);
 //        ft_printf("Request page: Mapped new page %p with block_head at %p and metadata %p and page_footer %p\n", new_page, (new_page)->block_head, (new_page)->block_head->metadata, page_footer);
         while (page_iterator->next != NULL)
             page_iterator = page_iterator->next;
@@ -192,6 +200,9 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
     if (arena_head[i].initialized == FALSE)
         return (init_arena(&arena_head[i], page_size, requested_size));
     arena_head[i].assigned_threads++;
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Assign_arena: arena %d has %d threads assigned\n", *assigned_arena, arena_head[i].assigned_threads);
+    pthread_mutex_unlock(&print_stick);
     pthread_mutex_unlock(&arena_head[i].lock);
     return (SUCCESS);
 }
@@ -215,7 +226,9 @@ void    *malloc(size_t size)
             return (NULL); // Not correct, look into what needs to be done
     }
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
+    pthread_mutex_lock(&print_stick);
     ft_printf("Malloc: Thread assigned arena %d trying to allocate memory\n", *assigned_arena);
+    pthread_mutex_unlock(&print_stick);
     payload = allocate_memory(*assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
@@ -237,7 +250,6 @@ void    *malloc(size_t size)
 #define NUM_THREADS 5
 #define NUM_ALLOCS  10
 
-pthread_mutex_t print_stick;
 int thread_nb = 10;
 
 void *thread_func(void *arg) {

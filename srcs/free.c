@@ -62,7 +62,7 @@ void    free(void *ptr)
     int    *assigned_arena = get_assigned_arena();
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
     s_page **page_iterator = &arena_head[*assigned_arena].page_head; // Make function to find pages in arena
-    if (ptr == NULL)
+    if (ptr == NULL || !page_iterator || !*page_iterator)
     {
         pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return;
@@ -89,15 +89,21 @@ void    free(void *ptr)
         {
             header = GET_FIRST_HEADER(*page_iterator);
             s_page *page_to_remove = remove_page_node(*assigned_arena, *page_iterator);
+            pthread_mutex_lock(&print_stick);
+            ft_printf("Free: Thread calling unmap on page: %p\n", page_to_remove);
+            pthread_mutex_unlock(&print_stick);
             munmap(page_to_remove, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
             page_to_remove = NULL; // Likely does not write into page_head correctly
             if (!arena_head[*assigned_arena].page_head)
             {
+                arena_head[*assigned_arena].assigned_threads--;
                 pthread_mutex_lock(&print_stick);
                 ft_printf("Resetting arena\n");
                 pthread_mutex_unlock(&print_stick);
+               // if (!arena_head[*assigned_arena].assigned_threads)
         //        reset_arena(&arena_head[*assigned_arena]);
                 pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+                *assigned_arena = -1;
                 return;
             }
         }
