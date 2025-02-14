@@ -49,7 +49,8 @@ void    *realloc(void *ptr, size_t size);
 void    show_alloc_mem();
 
 
-void    remove_page_node(s_page **page, s_page *released_page);
+void    remove_page_node(int assigned_arena, s_page *released_page);
 void    *search_address(void *ptr, s_page **page_iterator);
+int     *get_assigned_arena(void);
 #endif
 

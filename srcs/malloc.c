@@ -201,7 +201,7 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
 void    *malloc(size_t size)
 {
     static          long page_size;
-    static __thread int assigned_arena = -1;
+    int             *assigned_arena = get_assigned_arena();
     void            *payload;
     int             error_status = 0;
 
@@ -217,22 +217,24 @@ void    *malloc(size_t size)
             return (NULL);
         if (init_arena(&arena_head[0], &page_size, size) == FATAL_ERROR)
             return (NULL);
-        assigned_arena = 0;
+        *assigned_arena = 0;
     }
-    else if (assigned_arena == -1)
+    else if (*assigned_arena == -1)
     {
-        if (assign_arena(&assigned_arena, &page_size, size) == FATAL_ERROR)
+        if (assign_arena(assigned_arena, &page_size, size) == FATAL_ERROR)
             return (NULL); // Not correct, look into what needs to be done
     }
-    payload = allocate_memory(assigned_arena, size, &error_status);
+    pthread_mutex_lock(&arena_head[*assigned_arena].lock);
+    payload = allocate_memory(*assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
         long long type = get_page_type(page_size, size);
-        if (request_page(&arena_head[assigned_arena].page_head, type, page_size) == FATAL_ERROR)
+        if (request_page(&arena_head[*assigned_arena].page_head, type, page_size) == FATAL_ERROR)
             return (NULL);
         error_status = 0;
-        payload = allocate_memory(assigned_arena, size, &error_status);
+        payload = allocate_memory(*assigned_arena, size, &error_status);
     }
+    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     return (payload);
 };
 
@@ -245,9 +247,9 @@ int main(int ac, char **av)
     }
     (void)av;
     void *ptr;
-    for (int i = 0; i < 1000; i++)
-        ptr = malloc(100);
-    (void)ptr;
+    ptr = malloc(100);
+    show_alloc_mem();
+    free(ptr);
     show_alloc_mem();
     return (0);
 }

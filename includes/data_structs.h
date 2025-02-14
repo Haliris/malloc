@@ -30,7 +30,6 @@ typedef struct t_page
 typedef struct t_arena
 {
     s_page          *page_head;
-    size_t          size;
     pthread_mutex_t lock;
     int             initialized;
     int             assigned_threads;

@@ -41,18 +41,37 @@ int    check_for_page_release(s_page *page)
     return (TRUE);
 }
 
+void    reset_arena(s_arena *arena)
+{
+    arena->initialized = 0;
+    arena->assigned_threads = 0;
+    pthread_mutex_unlock(&arena->lock);
+    pthread_mutex_destroy(&arena->lock);
+}
+
 void    free(void *ptr)
 {
-    s_page **page_iterator = &arena_head[0].page_head; // Make function to find pages in arena
+    int    *assigned_arena = get_assigned_arena();
+    pthread_mutex_lock(&arena_head[*assigned_arena].lock);
+    s_page **page_iterator = &arena_head[*assigned_arena].page_head; // Make function to find pages in arena
     if (ptr == NULL)
+    {
+        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return;
+    }
     void *block = search_address(ptr, page_iterator);
     if (!block)
+    {
+        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return;
+    }
     s_block_header *header = GET_HEADER_FROM_BLOCK(block);
     int *metadata = &header->metadata;
     if (!(*metadata & ~ALLOCATED))
+    {
+        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return;
+    }
     else
     {
         *metadata ^= ALLOCATED;
@@ -61,10 +80,16 @@ void    free(void *ptr)
         if (check_for_page_release(*page_iterator) == TRUE)
         {
             header = GET_FIRST_HEADER(*page_iterator);
-            remove_page_node(&arena_head[0].page_head, *page_iterator);
+            remove_page_node(*assigned_arena, *page_iterator);
             munmap(*page_iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
-            *page_iterator = NULL;
+            *page_iterator = NULL; // Likely does not write into page_head correctly
+            if (!arena_head[*assigned_arena].page_head)
+            {
+                reset_arena(&arena_head[*assigned_arena]);
+                return;
+            }
         }
+        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return;
     }
 }

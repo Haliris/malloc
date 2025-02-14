@@ -2,6 +2,13 @@
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
 
+int *get_assigned_arena(void)
+{
+    static __thread int assigned_arena = -1;
+
+    return (&assigned_arena);
+}
+
 void    show_alloc_mem()
 {
     size_t  total_bytes = 0;
@@ -43,12 +50,14 @@ void    show_alloc_mem()
     ft_putendl_fd(" bytes", STDOUT_FILENO);
 }
 
-void    remove_page_node(s_page **page, s_page *released_page)
+void    remove_page_node(int assigned_arena, s_page *released_page)
 {
-    s_page *page_iterator = *page;
+    s_page *page_iterator = arena_head[assigned_arena].page_head;
 
     if (!released_page)
         return;
+    if (page_iterator == released_page) // check that this shit works please
+        page_iterator = NULL;
     while (page_iterator)
     {
         if (page_iterator->next && page_iterator->next == released_page)
