@@ -242,11 +242,9 @@ int main(int ac, char **av)
     }
     (void)av;
     void *ptr[100];
-    for (int i = 0; i < 100; i++)
-        ptr[i] = malloc(100);
+    ptr[0] = malloc(100);
     show_alloc_mem();
-    for (int i = 0; i < 100; i++)
-        free(ptr[i]);
+    free(ptr[0]);
     show_alloc_mem();
     void *realloc_ptr = malloc(8);
     show_alloc_mem();

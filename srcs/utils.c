@@ -52,19 +52,19 @@ void    show_alloc_mem()
     ft_putendl_fd(" bytes", STDOUT_FILENO);
 }
 
-void    remove_page_node(int assigned_arena, s_page *released_page)
+s_page  *remove_page_node(int assigned_arena, s_page *released_page)
 {
     s_page *page_iterator = arena_head[assigned_arena].page_head;
 
     if (!released_page)
-        return;
-    if (page_iterator == released_page)
+        return (NULL);
+    if (arena_head[assigned_arena].page_head == released_page)
     {
         if (page_iterator->next)
-            page_iterator = page_iterator->next;
+            arena_head[assigned_arena].page_head = page_iterator->next;
         else
-            page_iterator = NULL;
-        return;
+            arena_head[assigned_arena].page_head = NULL;
+        return (released_page);
     }
     while (page_iterator)
     {
@@ -78,6 +78,7 @@ void    remove_page_node(int assigned_arena, s_page *released_page)
         }
         page_iterator = page_iterator->next;
     }
+    return (released_page);
 }
 
 void    *search_address(void *ptr, s_page **page_iterator)

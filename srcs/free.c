@@ -80,9 +80,9 @@ void    free(void *ptr)
         if (check_for_page_release(*page_iterator) == TRUE)
         {
             header = GET_FIRST_HEADER(*page_iterator);
-            remove_page_node(*assigned_arena, *page_iterator);
-            munmap(*page_iterator, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
-            *page_iterator = NULL; // Likely does not write into page_head correctly
+            s_page *page_to_remove = remove_page_node(*assigned_arena, *page_iterator);
+            munmap(page_to_remove, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
+            page_to_remove = NULL; // Likely does not write into page_head correctly
             if (!arena_head[*assigned_arena].page_head)
             {
                 reset_arena(&arena_head[*assigned_arena]);
