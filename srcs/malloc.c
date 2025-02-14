@@ -246,10 +246,18 @@ int main(int ac, char **av)
         exit(1);
     }
     (void)av;
-    void *ptr;
-    ptr = malloc(100);
+    void *ptr[100];
+    for (int i = 0; i < 100; i++)
+        ptr[i] = malloc(100);
     show_alloc_mem();
-    free(ptr);
+    for (int i = 0; i < 100; i++)
+        free(ptr[i]);
+    show_alloc_mem();
+    void *realloc_ptr = malloc(8);
+    show_alloc_mem();
+    realloc_ptr = realloc(realloc_ptr, 16);
+    show_alloc_mem();
+    free(realloc_ptr);
     show_alloc_mem();
     return (0);
 }
