@@ -226,7 +226,7 @@ void    *malloc(size_t size)
 #include <assert.h>
 
 #define NUM_THREADS 1
-#define NUM_ALLOCS  10
+#define NUM_ALLOCS  100
 
 void *thread_func(void *arg) {
     char **ptrs;
@@ -245,15 +245,16 @@ void *thread_func(void *arg) {
     for (int i = 0; i < NUM_ALLOCS; i++) {
         ptrs[i] = realloc(ptrs[i], 128);
     }
-    
     // Free memory
     for (int i = 0; i < NUM_ALLOCS; i++) {
         free(ptrs[i]);
+        for (int j = 0; split_ptr[i][j] != NULL; j++) {
+            free(split_ptr[i][j]);  // Free individual strings
+        }
         free(split_ptr[i]);
     }
     free(ptrs);
     free(split_ptr);
-    show_alloc_mem();
     return NULL;
 }
 

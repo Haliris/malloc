@@ -36,13 +36,11 @@ int    check_for_page_release(s_page *page)
     {
         if (*metadata & ALLOCATED)
         {
-            ft_printf("Page still in use: %p!\n", page);
             return (FALSE);
         }
         s_block_header* next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
         metadata = &next_header->metadata;
     }
-    ft_printf("Releasing page: %p!\n", page);
     return (TRUE);
 }
 
