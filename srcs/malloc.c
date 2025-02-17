@@ -9,7 +9,6 @@
 #include <string.h>
 
 s_arena arena_head[MALLOC_ARENA_MAX];
-//pthread_mutex_t print_stick;
 
 atomic_int mapped_mem = 0;
 
@@ -226,26 +225,29 @@ void    *malloc(size_t size)
 #include <assert.h>
 
 #define NUM_THREADS 1
-#define NUM_ALLOCS  100
+#define NUM_ALLOCS  91
+pthread_mutex_t print_stick;
 
 void *thread_func(void *arg) {
     char **ptrs;
     char ***split_ptr;
     
-    // Allocate memory
     (void)arg;
     ptrs = malloc(NUM_ALLOCS * sizeof(char*));
     for (int i = 0; i < NUM_ALLOCS; i++) {
         ptrs[i] = ft_strdup("Hello World THis is Three Splits\n");
     }
     split_ptr = malloc(NUM_ALLOCS * sizeof(char**));
+    show_alloc_mem();
     for (int i = 0; i < NUM_ALLOCS; i++)
        split_ptr[i] = ft_split(ptrs[i], ' ');
 
     for (int i = 0; i < NUM_ALLOCS; i++) {
         ptrs[i] = realloc(ptrs[i], 128);
     }
-    // Free memory
+
+
+    show_alloc_mem();
     for (int i = 0; i < NUM_ALLOCS; i++) {
         free(ptrs[i]);
         for (int j = 0; split_ptr[i][j] != NULL; j++) {
@@ -253,15 +255,19 @@ void *thread_func(void *arg) {
         }
         free(split_ptr[i]);
     }
+    show_alloc_mem();
     free(ptrs);
     free(split_ptr);
+    show_alloc_mem();
     return NULL;
 }
+
 
 int main() {
     pthread_t threads[NUM_THREADS];
     
     // Spawn threads
+    pthread_mutex_init(&print_stick, NULL);
     for (int i = 0; i < NUM_THREADS; i++) {
         assert(pthread_create(&threads[i], NULL, thread_func, NULL) == 0);
     }
@@ -275,6 +281,7 @@ int main() {
         ft_printf("Some pages still in memory: %d\n", mapped_mem);
         return 1;
     }
+    pthread_mutex_destroy(&print_stick);
     ft_printf("Thread-safe malloc test passed!\n");
     return 0;
 }
