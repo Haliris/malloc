@@ -120,6 +120,7 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
             current_page = current_page->next;
         }
         pthread_mutex_unlock(&arena_head[i].lock);
+        i++;
     }
     return (NULL);
 };

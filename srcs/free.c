@@ -85,7 +85,6 @@ void    free(void *ptr)
         {
             header = GET_FIRST_HEADER(page_iterator);
             s_page *page_to_remove = remove_page_node(assigned_arena, page_iterator);
-            ft_printf("Releasing map: %p\n", page_to_remove);
             munmap(page_to_remove, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
             atomic_fetch_sub(&mapped_mem, 1);
             page_to_remove = NULL; // Likely does not write into page_head correctly

@@ -225,7 +225,7 @@ void    *malloc(size_t size)
 #include <assert.h>
 
 #define NUM_THREADS 1
-#define NUM_ALLOCS  91
+#define NUM_ALLOCS  1000
 pthread_mutex_t print_stick;
 
 void *thread_func(void *arg) {
@@ -251,10 +251,8 @@ void *thread_func(void *arg) {
         }
         free(split_ptr[i]);
     }
-    show_alloc_mem();
     free(ptrs);
     free(split_ptr);
-    show_alloc_mem();
     return NULL;
 }
 
