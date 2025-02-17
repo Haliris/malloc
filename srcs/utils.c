@@ -97,7 +97,10 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
             break;
         current_page = arena_head[i].page_head;
         if (!current_page)
+        {
+            pthread_mutex_unlock(&arena_head[i].lock);
             return (NULL);
+        }
         while (current_page)
         {
             s_block_header *header = GET_FIRST_HEADER(current_page);
