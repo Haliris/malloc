@@ -238,16 +238,12 @@ void *thread_func(void *arg) {
         ptrs[i] = ft_strdup("Hello World THis is Three Splits\n");
     }
     split_ptr = malloc(NUM_ALLOCS * sizeof(char**));
-    show_alloc_mem();
     for (int i = 0; i < NUM_ALLOCS; i++)
        split_ptr[i] = ft_split(ptrs[i], ' ');
 
     for (int i = 0; i < NUM_ALLOCS; i++) {
         ptrs[i] = realloc(ptrs[i], 128);
     }
-
-
-    show_alloc_mem();
     for (int i = 0; i < NUM_ALLOCS; i++) {
         free(ptrs[i]);
         for (int j = 0; split_ptr[i][j] != NULL; j++) {

@@ -59,11 +59,11 @@ void    reset_arena(s_arena *arena)
 void    free(void *ptr)
 {
     int    assigned_arena = 0;
-    s_page **page_iterator = &arena_head[0].page_head;
+    s_page *page_iterator = NULL;
 
     if (ptr == NULL)
         return;
-    void *block = search_address(ptr, page_iterator, &assigned_arena);
+    void *block = search_address(ptr, &page_iterator, &assigned_arena);
     if (!block)
     {
         pthread_mutex_unlock(&arena_head[assigned_arena].lock);
@@ -80,11 +80,12 @@ void    free(void *ptr)
     {
         *metadata ^= ALLOCATED;
         ft_memset(ptr, 0, *metadata);
-        defragment_page(*page_iterator); 
-        if (check_for_page_release(*page_iterator) == TRUE)
+        defragment_page(page_iterator); 
+        if (check_for_page_release(page_iterator) == TRUE)
         {
-            header = GET_FIRST_HEADER(*page_iterator);
-            s_page *page_to_remove = remove_page_node(assigned_arena, *page_iterator);
+            header = GET_FIRST_HEADER(page_iterator);
+            s_page *page_to_remove = remove_page_node(assigned_arena, page_iterator);
+            ft_printf("Releasing map: %p\n", page_to_remove);
             munmap(page_to_remove, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
             atomic_fetch_sub(&mapped_mem, 1);
             page_to_remove = NULL; // Likely does not write into page_head correctly

@@ -88,18 +88,19 @@ s_page  *remove_page_node(int assigned_arena, s_page *released_page)
 
 void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
 {
-    int i = 0;
+    int    i = 0;
+    s_page *current_page;
 
     while (i < MALLOC_ARENA_MAX)
     {
         if (pthread_mutex_lock(&arena_head[i].lock) == EINVAL)
             break;
-        *page_iterator = arena_head[i].page_head;
-        if (!*page_iterator)
+        current_page = arena_head[i].page_head;
+        if (!current_page)
             return (NULL);
-        while (*page_iterator)
+        while (current_page)
         {
-            s_block_header *header = GET_FIRST_HEADER(*page_iterator);
+            s_block_header *header = GET_FIRST_HEADER(current_page);
             int *metadata = &header->metadata;
             while (!IS_PAGE_FOOTER(*metadata))
             {
@@ -107,6 +108,7 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
                 if (block == ptr)
                 {
                     arena_nb = &i;
+                    *page_iterator = current_page;
                     return (block);
                 }
                 else
@@ -115,7 +117,7 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
                     metadata = &next_header->metadata;
                 }
             }
-            *page_iterator = (*page_iterator)->next;
+            current_page = current_page->next;
         }
         pthread_mutex_unlock(&arena_head[i].lock);
     }
