@@ -50,7 +50,7 @@ void    show_alloc_mem();
 
 
 s_page  *remove_page_node(int assigned_arena, s_page *released_page);
-void    *search_address(void *ptr, s_page **page_iterator);
+void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb);
 int     *get_assigned_arena(void);
 #endif
 

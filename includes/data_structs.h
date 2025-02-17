@@ -17,7 +17,7 @@ typedef enum t_zone_type
 typedef struct t_block_header
 {
     int     metadata;
-    char    padding[4]; //TO make it 8??
+    char    padding[4];
 } s_block_header;
 
 typedef struct t_page

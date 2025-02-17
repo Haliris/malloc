@@ -54,33 +54,25 @@ int  extend_block(int *metadata, s_page **page_iterator, size_t block_size, size
 
 void    *realloc(void *ptr, size_t size)
 {
-    int *assigned_arena = get_assigned_arena();
-    pthread_mutex_lock(&arena_head[*assigned_arena].lock);
-    s_page  **page_iterator = &arena_head[*assigned_arena].page_head;
+    int     assigned_arena = 0;
     size_t  ptr_size = 0;
+    s_page **page_iterator = &arena_head[0].page_head;
 
     if (size == 0 && ptr)
     {
         free(ptr);
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return (NULL);
     }
     if (size > LLONG_MAX - 7)
-    {
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return (NULL); //Add a custom error message and explain in defense the limitation, although why allocated 1048576 teras???
-    }
     if (size % 8 != 0)
         size = ROUND_TO_8(size);
     if (!ptr)
-    {
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
         return(malloc(size));
-    }
-    void *block = search_address(ptr, page_iterator);
+    void *block = search_address(ptr, page_iterator, &assigned_arena);
     if (!block)
     {
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+        pthread_mutex_unlock(&arena_head[assigned_arena].lock);
         return (malloc(size));
     }
     s_block_header *header = GET_HEADER_FROM_BLOCK(block);
@@ -90,24 +82,24 @@ void    *realloc(void *ptr, size_t size)
     if ((long long)size < (*metadata & ~ALLOCATED))
     {
         downsize_block(metadata, size, block_size);
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+        pthread_mutex_unlock(&arena_head[assigned_arena].lock);
         return (ptr);
     }
     if (extend_block(metadata, page_iterator, block_size, size) == SUCCESS)
     {
-        pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+        pthread_mutex_unlock(&arena_head[assigned_arena].lock);
         return (ptr);
     }
-    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+    pthread_mutex_unlock(&arena_head[assigned_arena].lock);
     void *payload = malloc(size);
     if (!payload)
     {
         free(ptr);
         return (NULL);
     }
-    pthread_mutex_lock(&arena_head[*assigned_arena].lock);
+    pthread_mutex_lock(&arena_head[assigned_arena].lock);
     payload = ft_memmove(payload, ptr, ptr_size);
-    pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+    pthread_mutex_unlock(&arena_head[assigned_arena].lock);
     free(ptr);
     return (payload);
 };

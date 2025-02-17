@@ -13,10 +13,12 @@ int *get_assigned_arena(void)
 void    show_alloc_mem()
 {
     size_t  total_bytes = 0;
+    pthread_mutex_lock(&print_stick);
     for (int i = 0; i < MALLOC_ARENA_MAX && arena_head[i].initialized; i++)
     {
         pthread_mutex_lock(&arena_head[i].lock);
         s_page  *page_iterator = arena_head[i].page_head;
+        ft_printf("Arena: %d\n", i);
         while (page_iterator) // fix loop by iterating over arena head using define and i
         {
             switch (page_iterator->type)
@@ -51,6 +53,7 @@ void    show_alloc_mem()
     ft_printf("Total: ");
     ft_putnbr_fd(total_bytes, STDOUT_FILENO);
     ft_putendl_fd(" bytes", STDOUT_FILENO);
+    pthread_mutex_unlock(&print_stick);
 }
 
 s_page  *remove_page_node(int assigned_arena, s_page *released_page)
@@ -82,26 +85,38 @@ s_page  *remove_page_node(int assigned_arena, s_page *released_page)
     return (released_page);
 }
 
-void    *search_address(void *ptr, s_page **page_iterator)
+void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
 {
-    if (!page_iterator || !*page_iterator)
-        return (NULL);
-    while (*page_iterator)
+    int i = 0;
+
+    while (i < MALLOC_ARENA_MAX)
     {
-        s_block_header *header = GET_FIRST_HEADER(*page_iterator);
-        int *metadata = &header->metadata;
-        while (!IS_PAGE_FOOTER(*metadata))
+        if (pthread_mutex_lock(&arena_head[i].lock) == EINVAL)
+            break;
+        *page_iterator = arena_head[i].page_head;
+        if (!*page_iterator)
+            return (NULL);
+        while (*page_iterator)
         {
-            void *block = GET_BLOCK_PTR(metadata);
-            if (block == ptr)
-                return (block);
-            else
+            s_block_header *header = GET_FIRST_HEADER(*page_iterator);
+            int *metadata = &header->metadata;
+            while (!IS_PAGE_FOOTER(*metadata))
             {
-                s_block_header* next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
-                metadata = &next_header->metadata;
+                void *block = GET_BLOCK_PTR(metadata);
+                if (block == ptr)
+                {
+                    arena_nb = &i;
+                    return (block);
+                }
+                else
+                {
+                    s_block_header* next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
+                    metadata = &next_header->metadata;
+                }
             }
+            *page_iterator = (*page_iterator)->next;
         }
-        *page_iterator = (*page_iterator)->next;
+        pthread_mutex_unlock(&arena_head[i].lock);
     }
     return (NULL);
 };

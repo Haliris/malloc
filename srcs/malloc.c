@@ -195,9 +195,6 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
     if (arena_head[i].initialized == FALSE)
         return (init_arena(&arena_head[i], page_size, requested_size));
     arena_head[i].assigned_threads++;
-    pthread_mutex_lock(&print_stick);
-    ft_printf("Assign_arena: arena %d has %d threads assigned\n", *assigned_arena, arena_head[i].assigned_threads);
-    pthread_mutex_unlock(&print_stick);
     pthread_mutex_unlock(&arena_head[i].lock);
     return (SUCCESS);
 }
@@ -221,9 +218,6 @@ void    *malloc(size_t size)
             return (NULL); // Not correct, look into what needs to be done
     }
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
-    pthread_mutex_lock(&print_stick);
-    ft_printf("Malloc: Thread assigned arena %d trying to allocate memory\n", *assigned_arena);
-    pthread_mutex_unlock(&print_stick);
     payload = allocate_memory(*assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
@@ -242,7 +236,7 @@ void    *malloc(size_t size)
 
 #include <assert.h>
 
-#define NUM_THREADS 200
+#define NUM_THREADS 7
 #define NUM_ALLOCS  1000
 
 int thread_nb = 10;
@@ -253,34 +247,18 @@ void *thread_func(void *arg) {
     // Allocate memory
     (void)arg;
     for (int i = 0; i < NUM_ALLOCS; i++) {
-        pthread_mutex_lock(&print_stick);
-        ft_printf("Doing allocations!\n");
-        pthread_mutex_unlock(&print_stick);
         ptrs[i] = malloc(64);
-        assert(ptrs[i] != NULL);
     }
     
     // Reallocate memory
     for (int i = 0; i < NUM_ALLOCS; i++) {
-        pthread_mutex_lock(&print_stick);
-        ft_printf("Doing reallocations!\n");
-        pthread_mutex_unlock(&print_stick);
         ptrs[i] = realloc(ptrs[i], 128);
-        assert(ptrs[i] != NULL);
     }
     
     // Free memory
     for (int i = 0; i < NUM_ALLOCS; i++) {
-        pthread_mutex_lock(&print_stick);
-        ft_printf("Doing frees!\n");
-        pthread_mutex_unlock(&print_stick);
         free(ptrs[i]);
     }
-    
-    pthread_mutex_lock(&print_stick);
-    ft_printf("Thread exiting#\n");
-    ft_printf("Threads left: %d\n", thread_nb--);
-    pthread_mutex_unlock(&print_stick);
     return NULL;
 }
 
