@@ -1,7 +1,6 @@
 #include "../includes/malloc.h"
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
-extern pthread_mutex_t print_stick;
 
 int *get_assigned_arena(void)
 {
@@ -13,10 +12,9 @@ int *get_assigned_arena(void)
 void    show_alloc_mem()
 {
     size_t  total_bytes = 0;
-    pthread_mutex_lock(&print_stick);
     for (int i = 0; i < MALLOC_ARENA_MAX && arena_head[i].initialized; i++)
     {
-        pthread_mutex_lock(&arena_head[i].lock);
+//        pthread_mutex_lock(&arena_head[i].lock);
         s_page  *page_iterator = arena_head[i].page_head;
         ft_printf("Arena: %d\n", i);
         while (page_iterator) // fix loop by iterating over arena head using define and i
@@ -42,18 +40,21 @@ void    show_alloc_mem()
             {
                 void           *block_ptr = GET_BLOCK_PTR(metadata);
                 s_block_header *next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
-                ft_printf("%p - %p: %d bytes\n", block_ptr, next_header, (*metadata & ~ALLOCATED));
+                ft_printf("%p - %p: %d bytes ", block_ptr, next_header, (*metadata & ~ALLOCATED));
+                if (*metadata & ALLOCATED)
+                    ft_printf("| Allocated\n");
+                else
+                    ft_printf("| Free\n");
                 total_bytes += *metadata & ~ALLOCATED;
                 metadata = &next_header->metadata;
             }
             page_iterator = page_iterator->next;
         }
-        pthread_mutex_unlock(&arena_head[i].lock);
+ //       pthread_mutex_unlock(&arena_head[i].lock);
     }
     ft_printf("Total: ");
     ft_putnbr_fd(total_bytes, STDOUT_FILENO);
     ft_putendl_fd(" bytes", STDOUT_FILENO);
-    pthread_mutex_unlock(&print_stick);
 }
 
 s_page  *remove_page_node(int assigned_arena, s_page *released_page)

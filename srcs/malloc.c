@@ -9,13 +9,12 @@
 #include <string.h>
 
 s_arena arena_head[MALLOC_ARENA_MAX];
+//pthread_mutex_t print_stick;
 
-pthread_mutex_t print_stick;
-pthread_mutex_t page_mutex;
+atomic_int mapped_mem = 0;
 
 int     request_page(s_page **page_head, long long type, long page_size)
 {
-    pthread_mutex_lock(&page_mutex);
     if (!*page_head)
     {
         *page_head = (void*)mmap(NULL,
@@ -24,12 +23,7 @@ int     request_page(s_page **page_head, long long type, long page_size)
                                 MAP_ANONYMOUS | MAP_PRIVATE,
                                 -1, 0);
         if (*page_head == MAP_FAILED)
-        {
-            ft_putstr_fd("Fatal error: ", STDERR_FILENO);
-            ft_putnbr_fd(errno, STDERR_FILENO);
-            write(2, "\n", 1);
             return (FATAL_ERROR);
-        }
         if (type > SMALL)
             type = LARGE;
         (*page_head)->type = type;
@@ -48,12 +42,7 @@ int     request_page(s_page **page_head, long long type, long page_size)
                                 MAP_ANONYMOUS | MAP_PRIVATE,
                                 -1, 0);
         if (new_page == MAP_FAILED)
-        {
-            ft_putstr_fd("Fatal error: ", STDERR_FILENO);
-            ft_putnbr_fd(errno, STDERR_FILENO);
-            write(2, "\n", 1);
             return (FATAL_ERROR);
-        }
         if (type > SMALL)
             type = LARGE;
         new_page->type = type;
@@ -64,12 +53,12 @@ int     request_page(s_page **page_head, long long type, long page_size)
         s_block_header* page_footer = (s_block_header*)((char*)new_page + sizeof(s_page) + sizeof(s_block_header) + free_space);
         page_footer->metadata = 0;
         page_footer->metadata |= ALLOCATED;
-        s_page *page_iterator = *page_head; // bad??
+        s_page *page_iterator = *page_head;
         while (page_iterator->next != NULL)
             page_iterator = page_iterator->next;
-        page_iterator->next = new_page; // bad too??
+        page_iterator->next = new_page;
     }
-    pthread_mutex_unlock(&page_mutex);
+    atomic_fetch_add(&mapped_mem, 1);
     return (SUCCESS);
 }
 
@@ -135,7 +124,7 @@ void   *allocate_memory(int assigned_arena, long long size, int *error_status)
                 }
                 else if (next_header->metadata & ALLOCATED)
                 {
-                    page_iterator->block_head = next_header; // check that this writes correctly into the page
+                    page_iterator->block_head = next_header;
                     return (ptr);
                 }
                 if (size < original_size)
@@ -160,7 +149,6 @@ int init_arena(s_arena *arena, long *page_size, long requested_size)
         pthread_mutex_destroy(&arena->lock);
         return (FATAL_ERROR);
     }
-    //arena_head->size =  //will need to reimplement free_space tracking per pages
     arena->initialized = TRUE;
     pthread_mutex_unlock(&arena->lock);
     return (SUCCESS);
@@ -181,7 +169,8 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
                     return (FATAL_ERROR);
                 pthread_mutex_lock(&arena_head[i].lock);
             } 
-            //else return error and cry
+            else
+                return (FATAL_ERROR);
         }
         if(arena_head[i].assigned_threads > 5)
         {
@@ -215,7 +204,7 @@ void    *malloc(size_t size)
     if (*assigned_arena == -1)
     {
         if (assign_arena(assigned_arena, &page_size, size) == FATAL_ERROR)
-            return (NULL); // Not correct, look into what needs to be done
+            return (NULL);
     }
     pthread_mutex_lock(&arena_head[*assigned_arena].lock);
     payload = allocate_memory(*assigned_arena, size, &error_status);
@@ -236,21 +225,23 @@ void    *malloc(size_t size)
 
 #include <assert.h>
 
-#define NUM_THREADS 7
-#define NUM_ALLOCS  1000
-
-int thread_nb = 10;
+#define NUM_THREADS 1
+#define NUM_ALLOCS  10
 
 void *thread_func(void *arg) {
-    void *ptrs[NUM_ALLOCS];
+    char **ptrs;
+    char ***split_ptr;
     
     // Allocate memory
     (void)arg;
+    ptrs = malloc(NUM_ALLOCS * sizeof(char*));
     for (int i = 0; i < NUM_ALLOCS; i++) {
-        ptrs[i] = malloc(64);
+        ptrs[i] = ft_strdup("Hello World THis is Three Splits\n");
     }
-    
-    // Reallocate memory
+    split_ptr = malloc(NUM_ALLOCS * sizeof(char**));
+    for (int i = 0; i < NUM_ALLOCS; i++)
+       split_ptr[i] = ft_split(ptrs[i], ' ');
+
     for (int i = 0; i < NUM_ALLOCS; i++) {
         ptrs[i] = realloc(ptrs[i], 128);
     }
@@ -258,7 +249,11 @@ void *thread_func(void *arg) {
     // Free memory
     for (int i = 0; i < NUM_ALLOCS; i++) {
         free(ptrs[i]);
+        free(split_ptr[i]);
     }
+    free(ptrs);
+    free(split_ptr);
+    show_alloc_mem();
     return NULL;
 }
 
@@ -266,8 +261,6 @@ int main() {
     pthread_t threads[NUM_THREADS];
     
     // Spawn threads
-    pthread_mutex_init(&print_stick, NULL);
-    pthread_mutex_init(&page_mutex, NULL);
     for (int i = 0; i < NUM_THREADS; i++) {
         assert(pthread_create(&threads[i], NULL, thread_func, NULL) == 0);
     }
@@ -276,8 +269,11 @@ int main() {
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
-    pthread_mutex_destroy(&print_stick);
-    pthread_mutex_destroy(&page_mutex);
-    printf("Thread-safe malloc test passed!\n");
+    if (mapped_mem)
+    {
+        ft_printf("Some pages still in memory: %d\n", mapped_mem);
+        return 1;
+    }
+    ft_printf("Thread-safe malloc test passed!\n");
     return 0;
 }

@@ -1,7 +1,7 @@
 #include "../includes/malloc.h"
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
-extern pthread_mutex_t print_stick;
+extern atomic_int mapped_mem;
 
 void    defragment_page(s_page* page)
 {
@@ -35,10 +35,14 @@ int    check_for_page_release(s_page *page)
     while (!IS_PAGE_FOOTER(*metadata))
     {
         if (*metadata & ALLOCATED)
+        {
+            ft_printf("Page still in use: %p!\n", page);
             return (FALSE);
+        }
         s_block_header* next_header = GET_NEXT_HEADER_FROM_HEADER(metadata);
         metadata = &next_header->metadata;
     }
+    ft_printf("Releasing page: %p!\n", page);
     return (TRUE);
 }
 
@@ -84,6 +88,7 @@ void    free(void *ptr)
             header = GET_FIRST_HEADER(*page_iterator);
             s_page *page_to_remove = remove_page_node(assigned_arena, *page_iterator);
             munmap(page_to_remove, header->metadata + sizeof(s_page) + 2 * sizeof(s_block_header));
+            atomic_fetch_sub(&mapped_mem, 1);
             page_to_remove = NULL; // Likely does not write into page_head correctly
             if (!arena_head[assigned_arena].page_head)
             {

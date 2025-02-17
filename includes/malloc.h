@@ -4,6 +4,7 @@
 # include <unistd.h>
 # include <errno.h>
 # include <sys/mman.h>
+# include <stdatomic.h>
 # include <stdlib.h>
 # include <limits.h>
 # include <pthread.h>

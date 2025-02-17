@@ -4,8 +4,6 @@
 # define ALLOCATED 1
 # include <pthread.h>
 # include <stddef.h>
-//Align memory to 8 so that the last 3 bits are always free to be written into. Need to mask them to get the size however
-//Need to setup headers and footers so that we can use then footers to go back through the list instead of being stuck going forward
 
 typedef enum t_zone_type
 {
@@ -22,9 +20,9 @@ typedef struct t_block_header
 
 typedef struct t_page
 {
-    struct t_page*     next;
-    s_block_header*    block_head;
-    e_zone_type        type;
+    struct t_page     *next;
+    s_block_header    *block_head;
+    e_zone_type       type;
 } s_page;
 
 typedef struct t_arena
