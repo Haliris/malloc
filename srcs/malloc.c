@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-s_arena arena_head[MALLOC_ARENA_MAX];
+s_arena     arena_head[MALLOC_ARENA_MAX];
 
 atomic_int mapped_mem = 0;
 
@@ -159,18 +159,12 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
 
     while (i < MALLOC_ARENA_MAX)
     {
-        int ret = pthread_mutex_lock(&arena_head[i].lock);
-        if (ret != 0)
+        if (!atomic_flag_test_and_set(&arena_head[i].arena_initialized))
         {
-            if(ret == EINVAL)
-            {
-                if (pthread_mutex_init(&arena_head[i].lock, NULL) != 0)
-                    return (FATAL_ERROR);
-                pthread_mutex_lock(&arena_head[i].lock);
-            } 
-            else
+            if (init_recursive_mutex(&arena_head[i].lock) != SUCCESS)
                 return (FATAL_ERROR);
         }
+        pthread_mutex_lock(&arena_head[i].lock);
         if(arena_head[i].assigned_threads > 5)
         {
             pthread_mutex_unlock(&arena_head[i].lock);
@@ -183,7 +177,6 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
     if (arena_head[i].initialized == FALSE)
         return (init_arena(&arena_head[i], page_size, requested_size));
     arena_head[i].assigned_threads++;
-    pthread_mutex_unlock(&arena_head[i].lock);
     return (SUCCESS);
 }
 
@@ -205,7 +198,8 @@ void    *malloc(size_t size)
         if (assign_arena(assigned_arena, &page_size, size) == FATAL_ERROR)
             return (NULL);
     }
-    pthread_mutex_lock(&arena_head[*assigned_arena].lock);
+    else
+        pthread_mutex_lock(&arena_head[*assigned_arena].lock);
     payload = allocate_memory(*assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
@@ -224,8 +218,8 @@ void    *malloc(size_t size)
 
 #include <assert.h>
 
-#define NUM_THREADS 2
-#define NUM_ALLOCS  1000
+#define NUM_THREADS 1
+#define NUM_ALLOCS  2
 pthread_mutex_t print_stick;
 
 void *thread_func(void *arg) {

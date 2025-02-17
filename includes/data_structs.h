@@ -31,6 +31,7 @@ typedef struct t_arena
     pthread_mutex_t lock;
     int             initialized;
     int             assigned_threads;
+    atomic_flag     arena_initialized;
 } s_arena;
 
 #endif

@@ -2,6 +2,19 @@
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
 
+int    init_recursive_mutex(pthread_mutex_t *mutex)
+{
+    int status = SUCCESS;
+
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    if (pthread_mutex_init(mutex, &attr) != 0)
+        status = FAILURE;
+    pthread_mutexattr_destroy(&attr);
+    return (status);
+}
+
 int *get_assigned_arena(void)
 {
     static __thread int assigned_arena = -1;
