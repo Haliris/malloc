@@ -1,6 +1,7 @@
 #include "../includes/malloc.h"
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
+extern pthread_mutex_t print_stick;
 
 pthread_t *get_thread_id(void)
 {
@@ -35,7 +36,8 @@ void    show_alloc_mem()
     size_t  total_bytes = 0;
     for (int i = 0; i < MALLOC_ARENA_MAX && atomic_load(&arena_head[i].arena_initialized); i++)
     {
-        pthread_mutex_lock(&arena_head[i].lock);
+        pthread_mutex_lock(&print_stick);
+//        pthread_mutex_lock(&arena_head[i].lock);
         s_page  *page_iterator = arena_head[i].page_head;
         ft_printf("Arena: %d\n", i);
         while (page_iterator) // fix loop by iterating over arena head using define and i
@@ -76,6 +78,7 @@ void    show_alloc_mem()
     ft_printf("Total: ");
     ft_putnbr_fd(total_bytes, STDOUT_FILENO);
     ft_putendl_fd(" bytes", STDOUT_FILENO);
+    pthread_mutex_unlock(&print_stick);
 }
 
 s_page  *remove_page_node(int assigned_arena, s_page *released_page)
@@ -111,6 +114,7 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
 {
     int    i = 0;
     s_page *current_page;
+    pthread_t *id = get_thread_id();
 
     while (i < MALLOC_ARENA_MAX && atomic_load(&arena_head[i].arena_initialized))
     {
@@ -118,9 +122,15 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
         current_page = arena_head[i].page_head;
         if (!current_page)
         {
+            pthread_mutex_lock(&print_stick);
+            ft_printf("Thread %d found page_head to be NULL in search_address\n", *id);
+            pthread_mutex_unlock(&print_stick);
             atomic_fetch_sub(&arena_head[i].assigned_threads, 1);
             if (!atomic_load(&arena_head[i].assigned_threads))
             {
+                pthread_mutex_lock(&print_stick);
+                ft_printf("Thread %d resetting arena in search_address\n", *id);
+                pthread_mutex_unlock(&print_stick);
                 pthread_mutex_unlock(&arena_head[i].lock);
                 pthread_mutex_destroy(&arena_head[i].lock);
                 atomic_exchange(&arena_head[i].arena_initialized, FALSE);
@@ -155,5 +165,9 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
         pthread_mutex_unlock(&arena_head[i].lock);
         i++;
     }
+    show_alloc_mem();
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d did not find address %p in search_address\n", *id, ptr);
+    pthread_mutex_unlock(&print_stick);
     return (NULL);
 };

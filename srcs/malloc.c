@@ -170,7 +170,7 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
             if (init_recursive_mutex(&arena_head[i].lock) != SUCCESS)
                 return (FATAL_ERROR);
         }
-        if(atomic_load(&arena_head[i].assigned_threads) > 5)
+        if (atomic_load(&arena_head[i].assigned_threads) > 5)
             i++;
         else
         {
@@ -182,6 +182,9 @@ int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
     *assigned_arena = i;
     if (arena_head[i].page_head == NULL)
     {
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d initializing pages of designated arena\n", *id);
+        pthread_mutex_unlock(&print_stick);
         if (init_pages(&arena_head[i].page_head, page_size, requested_size) == FATAL_ERROR)
         {
             pthread_mutex_unlock(&arena_head[i].lock);
@@ -235,7 +238,7 @@ void    *malloc(size_t size)
     }
     pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
     pthread_mutex_lock(&print_stick);
-    ft_printf("Thread %d returning payload from malloc\n", *id);
+    ft_printf("Thread %d returning payload %p from malloc\n", *id, payload);
     pthread_mutex_unlock(&print_stick);
     return (payload);
 };
@@ -292,7 +295,6 @@ int main() {
     // Join threads
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
-        ft_printf("Exit test?? %d\n");
     }
     if (mapped_mem)
     {
