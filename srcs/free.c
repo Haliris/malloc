@@ -66,7 +66,6 @@ void    free(void *ptr)
     pthread_mutex_lock(&print_stick);
     ft_printf("Thread %d in free\n", *id);
     pthread_mutex_unlock(&print_stick);
-    print_trace();
     if (ptr == NULL)
         return;
     void *block = search_address(ptr, &page_iterator, &assigned_arena);

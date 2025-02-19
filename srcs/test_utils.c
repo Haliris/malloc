@@ -2,26 +2,7 @@
 #include "../includes/data_structs.h"
 #include <stdio.h>
 #include <string.h>
-
-#include <execinfo.h>
 extern pthread_mutex_t print_stick;
-
-void print_trace() {
-    void *array[10];
-    int size;
-    char **strings;
-
-    size = backtrace(array, 10);
-    strings = backtrace_symbols(array, size);
-
-    pthread_mutex_lock(&print_stick);
-    ft_printf("Obtained %d stack frames:\n", size);
-    for (int i = 0; i < size; i++)
-        ft_printf("%s\n", strings[i]);
-
-    pthread_mutex_unlock(&print_stick);
-    free(strings);
-}
 
 void    ft_print_bits(long nb) // chat gpt shit, remove aaah
 {

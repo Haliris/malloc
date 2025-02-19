@@ -56,6 +56,5 @@ int     *get_assigned_arena(void);
 int     init_recursive_mutex(pthread_mutex_t *mutex);
 
 pthread_t *get_thread_id(void);
-void      print_trace();
 #endif
 
