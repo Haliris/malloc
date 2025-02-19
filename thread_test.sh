@@ -22,4 +22,5 @@ do
     fi
 done
 echo "Test done running"
+cat $log_file
 rm -rf $log_file

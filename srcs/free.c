@@ -2,6 +2,7 @@
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
 extern atomic_int mapped_mem;
+extern pthread_mutex_t print_stick;
 
 void    defragment_page(s_page* page)
 {
@@ -46,7 +47,6 @@ int    check_for_page_release(s_page *page)
 
 void    reset_arena(s_arena *arena)
 {
-    arena->initialized = 0;
     pthread_mutex_unlock(&arena->lock);
     if (pthread_mutex_trylock(&arena->lock) == 0)
     {
@@ -54,19 +54,27 @@ void    reset_arena(s_arena *arena)
         pthread_mutex_destroy(&arena->lock);
         return;
     }
+    atomic_exchange(&arena->arena_initialized, FALSE);
 }
 
 void    free(void *ptr)
 {
     int    assigned_arena = 0;
     s_page *page_iterator = NULL;
+    pthread_t *id = get_thread_id();
 
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d in free\n", *id);
+    pthread_mutex_unlock(&print_stick);
+    print_trace();
     if (ptr == NULL)
         return;
     void *block = search_address(ptr, &page_iterator, &assigned_arena);
     if (!block)
     {
-        pthread_mutex_unlock(&arena_head[assigned_arena].lock);
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d returning from free after invalidating PTR in search_address\n", *id);
+        pthread_mutex_unlock(&print_stick);
         return;
     }
     s_block_header *header = GET_HEADER_FROM_BLOCK(block);
@@ -74,6 +82,9 @@ void    free(void *ptr)
     if (!(*metadata & ~ALLOCATED))
     {
         pthread_mutex_unlock(&arena_head[assigned_arena].lock);
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d returning from free after invalidating PTR for being already free\n", *id);
+        pthread_mutex_unlock(&print_stick);
         return;
     }
     else
@@ -90,10 +101,20 @@ void    free(void *ptr)
             page_to_remove = NULL; // Likely does not write into page_head correctly
             if (!arena_head[assigned_arena].page_head)
             {
-                arena_head[assigned_arena].assigned_threads--;
-                if (!arena_head[assigned_arena].assigned_threads)
+                atomic_fetch_sub(&arena_head[assigned_arena].assigned_threads, 1);
+                if (atomic_load(&arena_head[assigned_arena].assigned_threads) == 0)
+                {
+                    pthread_mutex_lock(&print_stick);
+                    ft_printf("Thread %d returning from free after releasing page AND resetting arena\n", *id);
+                    pthread_mutex_unlock(&print_stick);
                     return (reset_arena(&arena_head[assigned_arena]));
+                }
                 pthread_mutex_unlock(&arena_head[assigned_arena].lock);
+                int *tls_arena = get_assigned_arena();
+                *tls_arena = -1;
+                pthread_mutex_lock(&print_stick);
+                ft_printf("Thread %d returning from free after releasing page\n", *id);
+                pthread_mutex_unlock(&print_stick);
                 return;
             }
         }

@@ -11,6 +11,7 @@
 s_arena     arena_head[MALLOC_ARENA_MAX];
 
 atomic_int mapped_mem = 0;
+extern pthread_mutex_t print_stick;
 
 int     request_page(s_page **page_head, long long type, long page_size)
 {
@@ -140,43 +141,56 @@ void   *allocate_memory(int assigned_arena, long long size, int *error_status)
     return (NULL);
 }
 
-int init_arena(s_arena *arena, long *page_size, long requested_size)
-{
-    if (init_pages(&arena->page_head, page_size, requested_size) == FATAL_ERROR)
-    {
-        pthread_mutex_unlock(&arena->lock);
-        pthread_mutex_destroy(&arena->lock);
-        return (FATAL_ERROR);
-    }
-    arena->initialized = TRUE;
-    pthread_mutex_unlock(&arena->lock);
-    return (SUCCESS);
-}
+// Check for atomic bool
+// If atomic bool false, we reached an uninitialized arena, assign it
+// Init mutex and lock it
+// Init pages
+// increment assigned_threads
+// Write *i in assigned_arena
+// return
+// ELSE
+// lock mutex
+// check page_head, init pages if NULL
+// increment assigned_threads
+// return
+// We hold the mutex UNTIL malloc returns
 
 int    assign_arena(int *assigned_arena, long *page_size, long requested_size)
 {
     int i = 0;
-
+    pthread_t *id = get_thread_id();
+    
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d in assign_arena\n", *id);
+    pthread_mutex_unlock(&print_stick);
     while (i < MALLOC_ARENA_MAX)
     {
-        if (!atomic_flag_test_and_set(&arena_head[i].arena_initialized))
+        if (!atomic_exchange(&arena_head[i].arena_initialized, TRUE))
         {
             if (init_recursive_mutex(&arena_head[i].lock) != SUCCESS)
                 return (FATAL_ERROR);
         }
-        pthread_mutex_lock(&arena_head[i].lock);
-        if(arena_head[i].assigned_threads > 5)
+        if(atomic_load(&arena_head[i].assigned_threads) > 5)
+            i++;
+        else
+        {
+            atomic_fetch_add(&arena_head[i].assigned_threads, 1);
+            break;
+        }
+    }
+    pthread_mutex_lock(&arena_head[i].lock);
+    *assigned_arena = i;
+    if (arena_head[i].page_head == NULL)
+    {
+        if (init_pages(&arena_head[i].page_head, page_size, requested_size) == FATAL_ERROR)
         {
             pthread_mutex_unlock(&arena_head[i].lock);
-            i++;
+            return (FATAL_ERROR);
         }
-        else
-            break;
     }
-    *assigned_arena = i;
-    if (arena_head[i].initialized == FALSE)
-        return (init_arena(&arena_head[i], page_size, requested_size));
-    arena_head[i].assigned_threads++;
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d leaving assign_arena\n", *id);
+    pthread_mutex_unlock(&print_stick);
     return (SUCCESS);
 }
 
@@ -186,7 +200,11 @@ void    *malloc(size_t size)
     int             *assigned_arena = get_assigned_arena();
     void            *payload;
     int             error_status = 0;
+    pthread_t       *id = get_thread_id();
 
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d in malloc\n", *id);
+    pthread_mutex_unlock(&print_stick);
     if (size == 0)
         return (NULL);
     if (size > LLONG_MAX - 7)
@@ -203,6 +221,9 @@ void    *malloc(size_t size)
     payload = allocate_memory(*assigned_arena, size, &error_status);
     if (error_status == NO_GOOD_PAGE)
     {
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d in malloc requesting new zone\n", *id);
+        pthread_mutex_unlock(&print_stick);
         long long type = get_page_type(page_size, size);
         if (request_page(&arena_head[*assigned_arena].page_head, type, page_size) == FATAL_ERROR)
         {
@@ -213,20 +234,25 @@ void    *malloc(size_t size)
         payload = allocate_memory(*assigned_arena, size, &error_status);
     }
     pthread_mutex_unlock(&arena_head[*assigned_arena].lock);
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d returning payload from malloc\n", *id);
+    pthread_mutex_unlock(&print_stick);
     return (payload);
 };
 
-#include <assert.h>
-
-#define NUM_THREADS 1
-#define NUM_ALLOCS  2
+#define NUM_THREADS 2
+#define NUM_ALLOCS  5
 pthread_mutex_t print_stick;
 
 void *thread_func(void *arg) {
     char **ptrs;
     char ***split_ptr;
+    pthread_t *id = get_thread_id();
     
     (void)arg;
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d beginning tests\n", *id);
+    pthread_mutex_unlock(&print_stick);
     ptrs = malloc(NUM_ALLOCS * sizeof(char*));
     for (int i = 0; i < NUM_ALLOCS; i++) {
         ptrs[i] = ft_strdup("Hello World THis is Three Splits\n");
@@ -247,6 +273,9 @@ void *thread_func(void *arg) {
     }
     free(ptrs);
     free(split_ptr);
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d ending tests\n", *id);
+    pthread_mutex_unlock(&print_stick);
     return NULL;
 }
 
@@ -257,12 +286,13 @@ int main() {
     // Spawn threads
     pthread_mutex_init(&print_stick, NULL);
     for (int i = 0; i < NUM_THREADS; i++) {
-        assert(pthread_create(&threads[i], NULL, thread_func, NULL) == 0);
+        pthread_create(&threads[i], NULL, thread_func, NULL);
     }
     
     // Join threads
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
+        ft_printf("Exit test?? %d\n");
     }
     if (mapped_mem)
     {

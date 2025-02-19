@@ -1,6 +1,7 @@
 #include "../includes/malloc.h"
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
+extern pthread_mutex_t print_stick;
 
 void    downsize_block(int* metadata, size_t size, size_t block_size)
 {
@@ -57,10 +58,17 @@ void    *realloc(void *ptr, size_t size)
     int     assigned_arena = 0;
     size_t  ptr_size = 0;
     s_page **page_iterator = &arena_head[0].page_head;
+    pthread_t *id = get_thread_id();
 
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d in realloc\n", *id);
+    pthread_mutex_unlock(&print_stick);
     if (size == 0 && ptr)
     {
         free(ptr);
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d returning from realloc freeing ptr\n", *id);
+        pthread_mutex_unlock(&print_stick);
         return (NULL);
     }
     if (size > LLONG_MAX - 7)
@@ -82,12 +90,18 @@ void    *realloc(void *ptr, size_t size)
     if ((long long)size < (*metadata & ~ALLOCATED))
     {
         downsize_block(metadata, size, block_size);
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d returning from realloc after downsizing block\n", *id);
+        pthread_mutex_unlock(&print_stick);
         pthread_mutex_unlock(&arena_head[assigned_arena].lock);
         return (ptr);
     }
     if (extend_block(metadata, page_iterator, block_size, size) == SUCCESS)
     {
         pthread_mutex_unlock(&arena_head[assigned_arena].lock);
+        pthread_mutex_lock(&print_stick);
+        ft_printf("Thread %d returning from realloc after extending block\n", *id);
+        pthread_mutex_unlock(&print_stick);
         return (ptr);
     }
     void *payload = malloc(size);
@@ -99,5 +113,8 @@ void    *realloc(void *ptr, size_t size)
     payload = ft_memmove(payload, ptr, ptr_size);
     free(ptr);
     pthread_mutex_unlock(&arena_head[assigned_arena].lock);
+    pthread_mutex_lock(&print_stick);
+    ft_printf("Thread %d returning from realloc\n", *id);
+    pthread_mutex_unlock(&print_stick);
     return (payload);
 };

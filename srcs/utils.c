@@ -2,6 +2,14 @@
 
 extern s_arena arena_head[MALLOC_ARENA_MAX];
 
+pthread_t *get_thread_id(void)
+{
+    static __thread pthread_t id = -1;
+
+    id = pthread_self();
+    return (&id);
+}
+
 int    init_recursive_mutex(pthread_mutex_t *mutex)
 {
     int status = SUCCESS;
@@ -25,9 +33,9 @@ int *get_assigned_arena(void)
 void    show_alloc_mem()
 {
     size_t  total_bytes = 0;
-    for (int i = 0; i < MALLOC_ARENA_MAX && arena_head[i].initialized; i++)
+    for (int i = 0; i < MALLOC_ARENA_MAX && atomic_load(&arena_head[i].arena_initialized); i++)
     {
-//        pthread_mutex_lock(&arena_head[i].lock);
+        pthread_mutex_lock(&arena_head[i].lock);
         s_page  *page_iterator = arena_head[i].page_head;
         ft_printf("Arena: %d\n", i);
         while (page_iterator) // fix loop by iterating over arena head using define and i
@@ -104,14 +112,23 @@ void    *search_address(void *ptr, s_page **page_iterator, int *arena_nb)
     int    i = 0;
     s_page *current_page;
 
-    while (i < MALLOC_ARENA_MAX)
+    while (i < MALLOC_ARENA_MAX && atomic_load(&arena_head[i].arena_initialized))
     {
-        if (pthread_mutex_lock(&arena_head[i].lock) == EINVAL)
-            break;
+        pthread_mutex_lock(&arena_head[i].lock);
         current_page = arena_head[i].page_head;
         if (!current_page)
         {
-            pthread_mutex_unlock(&arena_head[i].lock);
+            atomic_fetch_sub(&arena_head[i].assigned_threads, 1);
+            if (!atomic_load(&arena_head[i].assigned_threads))
+            {
+                pthread_mutex_unlock(&arena_head[i].lock);
+                pthread_mutex_destroy(&arena_head[i].lock);
+                atomic_exchange(&arena_head[i].arena_initialized, FALSE);
+            }
+            else
+                pthread_mutex_unlock(&arena_head[i].lock);
+            int *tls_arena = get_assigned_arena();
+            *tls_arena = -1;
             return (NULL);
         }
         while (current_page)

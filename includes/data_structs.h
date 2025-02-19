@@ -29,9 +29,8 @@ typedef struct t_arena
 {
     s_page          *page_head;
     pthread_mutex_t lock;
-    int             initialized;
-    int             assigned_threads;
-    atomic_flag     arena_initialized;
+    atomic_int      assigned_threads; 
+    atomic_bool     arena_initialized;
 } s_arena;
 
 #endif
